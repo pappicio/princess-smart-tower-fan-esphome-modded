@@ -245,6 +245,41 @@ fan:
                 }
             - script.execute: send_fan_packet
 
+button:
+  - platform: template
+    name: "Ventilatore Velocità 1"
+    on_press:
+      - lambda: |-
+          id(current_speed) = 1;
+      - script.execute: send_fan_packet
+
+  - platform: template
+    name: "Ventilatore Velocità 2"
+    on_press:
+      - lambda: |-
+          id(current_speed) = 2;
+      - script.execute: send_fan_packet
+
+  - platform: template
+    name: "Ventilatore Velocità 3"
+    on_press:
+      - lambda: |-
+          id(current_speed) = 3;
+      - script.execute: send_fan_packet
+
+switch:
+  - platform: template
+    name: "Ventilatore Swing"
+    id: swing_switch
+    lambda: |-
+      return id(user_swing_target);
+    turn_on_action:
+      - lambda: 'id(user_swing_target) = true;'
+      - script.execute: send_fan_packet
+    turn_off_action:
+      - lambda: 'id(user_swing_target) = false;'
+      - script.execute: send_fan_packet
+        
 number:
   - platform: template
     name: "Fan Timer (ore)"
