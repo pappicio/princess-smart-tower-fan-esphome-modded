@@ -31,13 +31,13 @@ improv_serial:
 
 wifi:
   networks:
-    - ssid: SSID2
+    - ssid: ssid2
       password: !secret wifi_password2
-    - ssid: SSID4
+    - ssid: ssid4
       password: !secret wifi_password4
-    - ssid: SSID6
+    - ssid: ssid6
       password: !secret wifi_password6
-    - ssid: SSID1
+    - ssid: ssid1
       password: !secret wifi_password1
   min_auth_mode: WPA2
   manual_ip:
@@ -88,30 +88,31 @@ globals:
   - id: last_frame_byte4
     type: uint8_t
     initial_value: '0xFF'
+  - id: last_timer_steps
+    type: int
+    initial_value: '-1'
+  - id: second_minute_tick
+    type: bool
+    initial_value: 'false'
     
 script:
   - id: send_fan_packet
     then:
       - lambda: |-
           uint8_t v = (id(current_speed) == 1) ? 0x03 : (id(current_speed) == 2 ? 0x05 : 0x07);
-
           uint8_t timer_low = (id(current_timer_steps) >> 2) & 0x3F;
           uint8_t timer_high = id(current_timer_steps) & 0x03;
-
           uint8_t s = id(user_swing_target) ? 0x40 : 0x00;
-
           uint8_t byte3 = timer_low | s;
           uint8_t byte4 = v | id(current_mode_bits) | (timer_high << 6);
-
           uint8_t p[4] = {0xAA, 0xA0, byte3, byte4};
 
-          ESP_LOGI("fan_command", "Invio comando: %02X %02X %02X %02X (speed=%d swing=%d mode=0x%02X timer=%d)",
+          ESP_LOGI("fan_command", "Invio comando: %02X %02X %02X %02X (speed=%d swing=%d mode=0x%02X timer=%d (%d minuti))",
                    p[0], p[1], p[2], p[3],
-                   id(current_speed), id(user_swing_target), id(current_mode_bits), id(current_timer_steps));
+                   id(current_speed), id(user_swing_target), id(current_mode_bits), id(current_timer_steps),
+                   id(current_timer_steps) * 2);
 
           id(fan_uart).write_array(p, 4);
-          //delay(50);
-          //id(fan_uart).write_array(p, 4);
  
 
 interval:
@@ -129,7 +130,6 @@ interval:
               continue;
             }
             if (idx == 4) {
-              // FILTRO ANTI-DUPLICATO: se identico al frame precedente, scarta subito
               if (buf[2] == id(last_frame_byte3) && buf[3] == id(last_frame_byte4)) {
                 idx = 0;
                 continue;
@@ -150,9 +150,23 @@ interval:
               else if (speed_bits == 0x05) speed = 2;
               else if (speed_bits == 0x07) speed = 3;
 
-              ESP_LOGI("fan_feedback", "Risposta ricevuta: %02X %02X %02X %02X (speed=%d swing=%d mode=%s timer=%d)",
+              if (timer_steps != id(last_timer_steps)) {
+                id(last_timer_steps) = timer_steps;
+                id(second_minute_tick) = false;
+              } else {
+                id(second_minute_tick) = true;
+              }
+
+              int minuti_precisi;
+              if (timer_steps == 0) {
+                minuti_precisi = 0;
+              } else {
+                minuti_precisi = (timer_steps * 2) - (id(second_minute_tick) ? 1 : 0);
+              }
+
+              ESP_LOGI("fan_feedback", "Risposta ric.: %02X %02X %02X %02X (speed=%d swing=%d mode=%s timer=%d (-%d minuti))",
               buf[0], buf[1], buf[2], buf[3],
-              speed, swing, natural ? "natural" : (sleep ? "sleep" : "normal"), timer_steps);
+              speed, swing, natural ? "natural" : (sleep ? "sleep" : "normal"), timer_steps, minuti_precisi);
 
               id(current_speed) = (speed > 0) ? speed : id(current_speed);
               id(user_swing_target) = swing;
@@ -173,7 +187,7 @@ interval:
               id(fan_timer_number).publish_state(timer_steps / 30.0f);
 
               std::string mode = "normal";
-              if (natural) mode = "natural";
+              if (natural) mode = "normal";
               if (sleep) mode = "sleep";
               id(fan_mode_sensor).publish_state(mode);
 
@@ -182,7 +196,6 @@ interval:
               idx = 0;
             }
           }
-
           
           
 fan:
