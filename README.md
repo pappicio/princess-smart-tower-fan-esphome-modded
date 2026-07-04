@@ -61,7 +61,7 @@ Una volta aggiunto, il dispositivo espone:
 
 ## 🗣️ Alexa & Matter
 
-Esposizione vocale tramite [Home Assistant Matter Hub](https://github.com/t0bst4r/home-assistant-matter-hub), che mappa automaticamente l'entity fan nativa sul Matter Fan device type — nessuna configurazione aggiuntiva richiesta oltre al bridge standard.
+Esposizione vocale tramite [Home Assistant Matter Hub](https://github.com/RiDDiX/home-assistant-matter-hub/), che mappa automaticamente l'entity fan nativa sul Matter Fan device type — nessuna configurazione aggiuntiva richiesta oltre al bridge standard.
 
 ## 🙏 Crediti
 
