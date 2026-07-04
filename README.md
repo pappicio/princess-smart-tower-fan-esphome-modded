@@ -1,6 +1,6 @@
-# 🌀 Princess Smart Tower Fan – ESPHome Local Control (modello: 350000; part number: 01.350000.01.001)
+# 🌀 Princess Smart Tower Fan – ESPHome Local Control
 
-Firmware ESPHome che sostituisce il modulo WiFi originale (ESP-WROOM-02) del **Princess Smart Tower Fan (350000)**, eliminando completamente la dipendenza dal cloud del produttore. Controllo 100% locale via Home Assistant, dashboard web integrata, automazioni, e integrazione vocale Alexa/Matter — nessun account, nessun server esterno, nessuna latenza cloud.
+Firmware ESPHome che sostituisce il modulo WiFi originale (ESP-WROOM-02) del **Princess Smart Tower Fan (modello: 350000; part number: 01.350000.01.001)**, eliminando completamente la dipendenza dal cloud del produttore. Controllo 100% locale via Home Assistant, dashboard web integrata, automazioni, e integrazione vocale Alexa/Matter — nessun account, nessun server esterno, nessuna latenza cloud.
 
 ## ✨ Perché questo progetto
 
