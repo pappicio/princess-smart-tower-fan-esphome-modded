@@ -12,7 +12,7 @@ Il fan originale comunica con l'app "HomeWizard Climate" solo tramite server del
 - ✅ Oscillazione (swing) on/off
 - ✅ Modalità **Normal / Natural / Sleep**
 - ✅ Timer programmabile 0–8h (step 0.5h)
-- ✅ **Feedback bidirezionale**: i comandi impartiti dai tasti touch fisici si riflettono in tempo reale su Home Assistant
+- ✅ **Feedback bidirezionale in tempo reale**: ogni comando impartito dai tasti touch fisici del fan viene letto dal bus UART e sincronizzato immediatamente su Home Assistant — velocità, oscillazione, modalità e timer residuo sono sempre allineati allo stato reale dell'hardware, indipendentemente da dove parte il comando (touch fisico, dashboard, automazione, Alexa)
 - ✅ Nessuna sovrascrittura di stato: ogni comando (speed/swing/mode/timer) preserva gli altri campi
 - ✅ Esposizione nativa **Alexa** e **Matter** tramite [Home Assistant Matter Hub](https://github.com/t0bst4r/home-assistant-matter-hub)
 - ✅ Dashboard web locale integrata (`web_server`)
