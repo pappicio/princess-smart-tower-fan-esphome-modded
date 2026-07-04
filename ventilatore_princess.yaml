@@ -135,6 +135,10 @@ interval:
               else if (speed_bits == 0x05) speed = 2;
               else if (speed_bits == 0x07) speed = 3;
 
+              ESP_LOGI("fan_feedback", "Risposta ricevuta: %02X %02X %02X %02X (speed=%d swing=%d mode=%s timer=%d)",
+              buf[0], buf[1], buf[2], buf[3],
+              speed, swing, natural ? "natural" : (sleep ? "sleep" : "normal"), timer_steps);
+              
               // aggiorna stato globale "sorgente di verità"
               id(current_speed) = (speed > 0) ? speed : id(current_speed);
               id(user_swing_target) = swing;
@@ -164,6 +168,7 @@ interval:
               idx = 0;
             }
           }
+
 
           
 fan:
