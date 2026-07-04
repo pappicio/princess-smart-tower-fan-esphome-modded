@@ -247,21 +247,21 @@ fan:
 
 button:
   - platform: template
-    name: "Ventilatore Velocità 1"
+    name: "Velocità 1"
     on_press:
       - lambda: |-
           id(current_speed) = 1;
       - script.execute: send_fan_packet
 
   - platform: template
-    name: "Ventilatore Velocità 2"
+    name: "Velocità 2"
     on_press:
       - lambda: |-
           id(current_speed) = 2;
       - script.execute: send_fan_packet
 
   - platform: template
-    name: "Ventilatore Velocità 3"
+    name: "Velocità 3"
     on_press:
       - lambda: |-
           id(current_speed) = 3;
