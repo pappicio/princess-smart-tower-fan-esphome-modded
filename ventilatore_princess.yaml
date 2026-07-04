@@ -282,7 +282,7 @@ button:
 
 switch:
   - platform: template
-    name: "Ventilatore Swing"
+    name: "Swing"
     id: swing_switch
     lambda: |-
       return id(user_swing_target);
