@@ -64,6 +64,8 @@ uart:
   rx_pin: GPIO18
   baud_rate: 9600
 
+
+
 globals:
   - id: current_speed
     type: int
@@ -80,7 +82,12 @@ globals:
   - id: syncing_from_uart
     type: bool
     initial_value: 'false'
-
+  - id: last_frame_byte3
+    type: uint8_t
+    initial_value: '0xFF'
+  - id: last_frame_byte4
+    type: uint8_t
+    initial_value: '0xFF'
     
 script:
   - id: send_fan_packet
@@ -103,9 +110,9 @@ script:
                    id(current_speed), id(user_swing_target), id(current_mode_bits), id(current_timer_steps));
 
           id(fan_uart).write_array(p, 4);
-          delay(50);
-          id(fan_uart).write_array(p, 4);
-
+          //delay(50);
+          //id(fan_uart).write_array(p, 4);
+ 
 
 interval:
   - interval: 20ms
@@ -122,6 +129,14 @@ interval:
               continue;
             }
             if (idx == 4) {
+              // FILTRO ANTI-DUPLICATO: se identico al frame precedente, scarta subito
+              if (buf[2] == id(last_frame_byte3) && buf[3] == id(last_frame_byte4)) {
+                idx = 0;
+                continue;
+              }
+              id(last_frame_byte3) = buf[2];
+              id(last_frame_byte4) = buf[3];
+
               bool swing = (buf[2] & 0x40) != 0;
               uint8_t timer_low = buf[2] & 0x3F;
               uint8_t speed_bits = buf[3] & 0x07;
@@ -138,8 +153,7 @@ interval:
               ESP_LOGI("fan_feedback", "Risposta ricevuta: %02X %02X %02X %02X (speed=%d swing=%d mode=%s timer=%d)",
               buf[0], buf[1], buf[2], buf[3],
               speed, swing, natural ? "natural" : (sleep ? "sleep" : "normal"), timer_steps);
-              
-              // aggiorna stato globale "sorgente di verità"
+
               id(current_speed) = (speed > 0) ? speed : id(current_speed);
               id(user_swing_target) = swing;
               id(current_mode_bits) = natural ? 0x08 : (sleep ? 0x10 : 0x00);
@@ -153,7 +167,7 @@ interval:
               call.set_oscillating(swing);
               if (natural) call.set_preset_mode("Natural");
               else if (sleep) call.set_preset_mode("Sleep");
-              else call.set_preset_mode("");
+              else call.set_preset_mode("Normal");
               call.perform();
 
               id(fan_timer_number).publish_state(timer_steps / 30.0f);
@@ -169,7 +183,7 @@ interval:
             }
           }
 
-
+          
           
 fan:
   - platform: template
