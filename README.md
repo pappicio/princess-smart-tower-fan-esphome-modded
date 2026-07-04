@@ -14,7 +14,7 @@ Il fan originale comunica (o meglio, nel mio caso, dovrebbe comunicare, cosa non
 - ✅ Timer programmabile 0–8h (step 0.5h)
 - ✅ **Feedback bidirezionale in tempo reale**: ogni comando impartito dai tasti touch fisici del fan (o eventualmente da un telecomando IR) viene letto dal bus UART e sincronizzato immediatamente su Home Assistant — velocità, oscillazione, modalità e timer residuo sono sempre allineati allo stato reale dell'hardware, indipendentemente da dove parte il comando (touch fisico, dashboard, automazione, Alexa)
 - ✅ Nessuna sovrascrittura di stato: ogni comando (speed/swing/mode/timer) preserva gli altri campi
-- ✅ Esposizione nativa **Alexa** e **Matter** tramite [Home Assistant Matter Hub](https://github.com/t0bst4r/home-assistant-matter-hub)
+- ✅ Esposizione nativa **Alexa** e **Matter** tramite [Home Assistant Matter Hub](https://github.com/RiDDiX/home-assistant-matter-hub/)
 - ✅ Dashboard web locale integrata (`web_server`)
 - ✅ Log diagnostico comandi inviati/ricevuti
 
