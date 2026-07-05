@@ -164,9 +164,12 @@ interval:
                 minuti_precisi = (timer_steps * 2) - (id(second_minute_tick) ? 1 : 0);
               }
 
-              ESP_LOGI("fan_feedback", "Risposta ric.: %02X %02X %02X %02X (speed=%d swing=%d mode=%s timer=%d (-%d minuti))",
+              uint8_t mode_bits = natural ? 0x08 : (sleep ? 0x10 : 0x00);
+
+              ESP_LOGI("fan_feedback", "Risposta ric.: %02X %02X %02X %02X (speed=%d swing=%d mode=0x%02X (%s) timer=%d (-%d minuti))",
               buf[0], buf[1], buf[2], buf[3],
-              speed, swing, natural ? "natural" : (sleep ? "sleep" : "normal"), timer_steps, minuti_precisi);
+              speed, swing, mode_bits, natural ? "natural" : (sleep ? "sleep" : "normal"), timer_steps, minuti_precisi);
+
 
               id(current_speed) = (speed > 0) ? speed : id(current_speed);
               id(user_swing_target) = swing;
@@ -187,10 +190,13 @@ interval:
               id(fan_timer_number).publish_state(timer_steps / 30.0f);
 
               std::string mode = "normal";
-              if (natural) mode = "normal";
+              if (natural) mode = "natural";
               if (sleep) mode = "sleep";
               id(fan_mode_sensor).publish_state(mode);
-
+              
+              std::string speed_str = (speed == 0) ? "Off" : ("Velocità " + std::to_string(speed));
+              id(fan_speed_sensor).publish_state(speed_str);
+              
               id(syncing_from_uart) = false;
 
               idx = 0;
@@ -259,6 +265,13 @@ fan:
             - script.execute: send_fan_packet
 
 button:
+
+  - platform: restart
+    name: "riavvio"
+    #entity_category: config
+    entity_category: diagnostic   # <- lo sposta su Diagnostic
+    web_server:
+      sorting_weight: 300
   - platform: template
     name: "Velocità 1"
     on_press:
@@ -348,7 +361,11 @@ text_sensor:
   - platform: template
     name: "Fan Mode"
     id: fan_mode_sensor
+  - platform: template
+    name: "Fan Velocità"
+    id: fan_speed_sensor
 
+    
   - platform: wifi_info
     ip_address:
       name: "Indirizzo IP:"
