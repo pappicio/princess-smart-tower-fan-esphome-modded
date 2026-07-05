@@ -397,3 +397,28 @@ text_sensor:
     update_interval: 5s
     web_server:
       sorting_weight: 501
+
+sensor:
+  # Reports the WiFi signal strength/RSSI in dB
+  - platform: wifi_signal
+    name: "Segnale WIFI db"
+    icon: mdi:wifi
+    id: wifi_signal_db
+    update_interval: 30s
+    entity_category: diagnostic
+    web_server:
+      sorting_weight: 600
+
+  # Reports the WiFi signal strength in %
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "Segnale WIFI %"
+    icon: mdi:wifi-strength-4
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: diagnostic
+    device_class: ""
+    web_server:
+      sorting_weight: 601
+#########################################################################
