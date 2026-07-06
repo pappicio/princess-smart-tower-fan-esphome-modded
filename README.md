@@ -21,7 +21,7 @@ Il fan originale comunica (o meglio, nel mio caso, dovrebbe comunicare, cosa non
 
 ## 🔧 Hardware richiesto
 
-- ESP32-S2 (testato su modulo "S2 mini" / supermini)
+- ESP8266/ESP32 (testato su modulo "S2 mini" / supermini)
 - Accesso fisico al bus UART interno del fan (pad TX/RX del modulo ESP-WROOM-02 originale)
 
 ### Collegamento (sostituzione 1:1 del modulo originale)
