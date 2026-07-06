@@ -43,6 +43,76 @@ Basato sul lavoro di reverse engineering condiviso nella [discussione Tasmota #1
 - Ogni campo (speed/swing/mode/timer) occupa bit dedicati senza sovrapposizioni
 - Formula timer: `steps = ore × 30` (minuti/2), distribuiti su 6 bit (byte3) + 2 bit (byte4)
 
+## 🔬 Composizione dei byte del protocollo
+
+Ogni comando/feedback è un datagramma a 4 byte: `AA A0 [byte3] [byte4]`.
+I primi due byte sono un header fisso di sincronizzazione. Gli ultimi due
+contengono tutti i parametri, codificati bit a bit **senza sovrapposizioni**:
+ogni informazione ha il proprio posto fisso, indipendentemente dalle altre.
+
+### Byte 3 — Timer (parte bassa) + Swing
+Bit:     7   6   5   4   3   2   1   0
+[SW][0 ][      TIMER (6 bit)    ]
+SW  (bit 7) = Swing/oscillazione: 1=ON, 0=OFF
+bit 6       = sempre 0 (non usato)
+bit 5-0     = 6 bit meno significativi del contatore timer (0-63)
+
+**Esempi:**
+0x00 = 00000000 → swing OFF, timer_low = 0
+0x40 = 01000000 → swing ON,  timer_low = 0
+0x3C = 00111100 → swing OFF, timer_low = 60 (max, = 8 ore)
+0x7C = 01111100 → swing ON,  timer_low = 60
+
+### Byte 4 — Velocità + Modalità + Timer (parte alta)
+Bit:     7   6   5   4   3   2   1   0
+[   TH  ][0 ][SL][NA][  SPEED  ]
+TH (bit 7-6) = 2 bit più significativi del timer (moltiplicano per 64/128/192)
+bit 5        = sempre 0 (non usato)
+SL (bit 4)   = Modalità Sleep: 1=ON, 0=OFF
+NA (bit 3)   = Modalità Natural: 1=ON, 0=OFF
+bit 2-0      = Velocità: 011=speed1, 101=speed2, 111=speed3, 010=OFF
+
+**Esempi:**
+0x03 = 00000011 → speed1, nessuna modalità, timer_high=0
+0x05 = 00000101 → speed2, nessuna modalità, timer_high=0
+0x0B = 00001011 → speed1, modalità Natural (bit3=1)
+0x13 = 00010011 → speed1, modalità Sleep (bit4=1)
+0x02 = 00000010 → OFF (spegnimento)
+
+### Timer: come si ricompone il valore completo
+
+Il contatore timer è a 8 bit totali, ma **spezzato in due pezzi** tra i due byte:
+timer_totale = (timer_low << 2) | timer_high
+minuti_residui = timer_totale × 2
+
+**Esempio pratico — Timer impostato a 3 ore (180 minuti):**
+steps = 180 / 2 = 90  (in binario: 01011010)
+timer_low  = 90 >> 2        = 22   (0x16, va nei bit 5-0 del byte3)
+timer_high = 90 & 0x03      = 2    (va nei bit 7-6 del byte4, shiftato: 2 << 6 = 0x80)
+byte3 = 0x16 (timer_low, swing OFF)
+byte4 = 0x80 | speed_code    (esempio con speed1: 0x80 | 0x03 = 0x83)
+Pacchetto finale: AA A0 16 83
+
+### Perché nessun campo si sovrappone
+
+Ogni valore possibile di ciascun campo resta dentro il proprio range di bit
+dedicato, quindi combinarli con un semplice OR bit a bit (`|`) non causa mai
+collisioni:
+
+| Campo | Byte | Bit occupati | Range valori |
+|---|---|---|---|
+| Swing | 3 | bit 7 | 0-1 |
+| Timer (basso) | 3 | bit 5-0 | 0-63 |
+| Timer (alto) | 4 | bit 7-6 | 0-3 |
+| Sleep | 4 | bit 4 | 0-1 |
+| Natural | 4 | bit 3 | 0-1 |
+| Velocità | 4 | bit 2-0 | 3/5/7 (OFF=2) |
+
+Questo permette di **modificare un solo parametro alla volta** (es. solo la
+velocità) senza dover conoscere o toccare lo stato degli altri campi — il
+firmware ricostruisce sempre il pacchetto completo combinando lo stato
+corrente di tutti i parametri ad ogni invio.
+
 ## 📦 Installazione
 
 1. Installa [ESPHome](https://esphome.io)
