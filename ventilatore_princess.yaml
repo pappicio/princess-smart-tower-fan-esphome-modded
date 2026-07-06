@@ -14,6 +14,12 @@ esphome:
           id(fan_mode_sensor).publish_state("Normal");
           uint8_t packet[4] = {0xAA, 0xA0, 0x00, 0x02};
           id(fan_uart).write_array(packet, 4);
+
+          // Allineamento Mode Bits (Normal=0x00, Natural=0x08, Sleep=0x10)
+          if (id(current_mode_bits) == 0x00) id(fan_mode_select).publish_state("Normal");
+          else if (id(current_mode_bits) == 0x08) id(fan_mode_select).publish_state("Natural");
+          else if (id(current_mode_bits) == 0x10) id(fan_mode_select).publish_state("Sleep");
+
           if (id(current_beep_mode) == 0) id(beep_mode_select).publish_state("Nessun Suono");
           else if (id(current_beep_mode) == 1) id(beep_mode_select).publish_state("Beep Breve");
           else if (id(current_beep_mode) == 2) id(beep_mode_select).publish_state("Beep Lungo");
@@ -129,7 +135,25 @@ select:
                   uint8_t cmd_beep = 0xA0 + id(current_beep_mode);
                   uint8_t p[4] = {0xAA, cmd_beep, 0x00, 0x00}; // Inviamo un comando neutro
                   id(fan_uart).write_array(p, 4);
-    
+
+  - platform: template
+    optimistic: true
+    name: "Modalità Ventilazione"
+    id: fan_mode_select
+    options:
+      - "Normal"
+      - "Natural"
+      - "Sleep"
+    initial_option: "Normal"
+    on_value:
+      then:
+        - lambda: |-
+            if (x == "Normal") id(current_mode_bits) = 0x00;
+            else if (x == "Natural") id(current_mode_bits) = 0x08;
+            else if (x == "Sleep") id(current_mode_bits) = 0x10;
+        - script.execute: send_fan_packet
+
+          
 script:
   - id: send_fan_packet
     then:
