@@ -17,6 +17,7 @@ Il fan originale comunica (o meglio, nel mio caso, dovrebbe comunicare, cosa non
 - ✅ Esposizione nativa **Alexa** e **Matter** tramite [Home Assistant Matter Hub](https://github.com/RiDDiX/home-assistant-matter-hub/)
 - ✅ Dashboard web locale integrata (`web_server`)
 - ✅ Log diagnostico comandi inviati/ricevuti
+- ✅ Aggiunta funzione ***beeper*** ad invio comandi. <nessun beep / beep breve / beep lungo>
 
 ## 🔧 Hardware richiesto
 
