@@ -111,7 +111,7 @@ external_components:
 
 uart:
   id: fan_uart
-  debug: 
+ ##### debug: 
     
 # UART GPIO  per il modulo originale del ventilatore
 ##### tx_pin: GPIO1
