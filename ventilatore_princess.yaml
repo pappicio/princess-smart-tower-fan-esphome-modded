@@ -220,13 +220,17 @@ script:
           uint8_t byte4 = v | id(current_mode_bits) | (timer_high << 6);
           uint8_t p[4] = {0xAA, 0xA0, byte3, byte4};
 
-          ESP_LOGI("fan_command", "Invio comando: %02X %02X %02X %02X (speed=%d swing=%d mode=0x%02X timer=%d (%d minuti))",
+          std::string mode_str = "normal";
+          if (id(current_mode_bits) == 0x08) mode_str = "natural";
+          else if (id(current_mode_bits) == 0x10) mode_str = "sleep";
+
+          ESP_LOGI("fan_command", "Invio comando: %02X %02X %02X %02X (speed=%d swing=%d mode=0x%02X (%s) timer=%d (%d minuti))",
                    p[0], p[1], p[2], p[3],
-                   id(current_speed), id(user_swing_target), id(current_mode_bits), id(current_timer_steps),
-                   id(current_timer_steps) * 2);
+                   id(current_speed), id(user_swing_target), id(current_mode_bits), mode_str.c_str(),
+                   id(current_timer_steps), id(current_timer_steps) * 2);
           id(is_command) = true;
           id(fan_uart).write_array(p, 4);
- 
+          
 
 interval:
   - interval: 20ms
