@@ -34,7 +34,7 @@ Il fan originale comunica (o meglio, nel mio caso, dovrebbe comunicare, cosa non
 | 3.3V | 3.3V |
 (***per  boot mode (primo flash da USB) ponticellare lo spinotto IO0-GND***)
 
-### Collegamento (sostituzione 1:1 del modulo originale)
+### Collegamento (sostituzione 1:1 del modulo originale per altro ESP-ESP32)
 
 | Pad scheda fan | ESP32-S2 |
 |---|---|
