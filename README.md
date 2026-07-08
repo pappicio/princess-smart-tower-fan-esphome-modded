@@ -32,7 +32,7 @@ Il fan originale comunica (o meglio, nel mio caso, dovrebbe comunicare, cosa non
 | TX | RX (GPIO3) |
 | GND | GND |
 | 3.3V | 3.3V |
-(***per  boot mode (ptimo flash da USB) ponticellare il pad IO0 + GND***)
+(***per  boot mode (primo flash da USB) ponticellare lo spinotto IO0-GND***)
 
 ### Collegamento (sostituzione 1:1 del modulo originale)
 
