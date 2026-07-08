@@ -128,12 +128,18 @@ globals:
   - id: current_speed
     type: int
     initial_value: '1'
+    restore_value: true
+    
   - id: user_swing_target
     type: bool
     initial_value: 'false'
+    restore_value: true
+    
   - id: current_mode_bits
     type: uint8_t
     initial_value: '0x00'
+    restore_value: true
+    
   - id: current_timer_steps
     type: int
     initial_value: '0'
@@ -143,9 +149,13 @@ globals:
   - id: last_frame_byte3
     type: uint8_t
     initial_value: '0xFF'
+    restore_value: true
+    
   - id: last_frame_byte4
     type: uint8_t
     initial_value: '0xFF'
+    restore_value: true
+    
   - id: last_timer_steps
     type: int
     initial_value: '-1'
