@@ -24,6 +24,16 @@ Il fan originale comunica (o meglio, nel mio caso, dovrebbe comunicare, cosa non
 - ESP8266/ESP32 (testato su MODULO ORIGINALE; OK; modulo "S2 mini", OK)
 - Accesso fisico al bus UART interno del fan (pad TX/RX del modulo ESP-WROOM-02 originale)
 
+### Collegamento (modulo originale)
+
+| Pad scheda fan | ESP|
+|---|---|
+| RX | TX (GPIO1) |
+| TX | RX (GPIO3) |
+| GND | GND |
+| 3.3V | 3.3V |
+(per booy mode pontiocellare il pad IO0 + GND)
+
 ### Collegamento (sostituzione 1:1 del modulo originale)
 
 | Pad scheda fan | ESP32-S2 |
