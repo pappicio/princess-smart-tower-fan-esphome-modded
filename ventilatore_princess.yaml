@@ -60,13 +60,13 @@ esphome:
 # =======================================================
 
 
-
-esp32:
-  variant: esp32s2
+# ESP32 S2 MINI
+###esp32:
+###  variant: esp32s2
   
 # === MODIFICATO PER ESP-WROOM-02 modulo originale del ventilatore ===
-###esp8266:
-###  board: esp_wroom_02
+esp8266:
+  board: esp_wroom_02
   
 logger:
   level: DEBUG
@@ -77,8 +77,8 @@ ota:
   - platform: esphome
     password: !secret ota_password
 
-# Rimuovere improv_serial per il modulo originale del ventilatore
-improv_serial:
+# abilitare  improv_serial per altri ESP-32
+###improv_serial:
 #################################################################
 wifi:
   networks:
@@ -114,10 +114,10 @@ uart:
  ##### debug: 
     
 # UART GPIO  per il modulo originale del ventilatore
-##### tx_pin: GPIO1
-##### rx_pin: GPIO3
-  tx_pin: GPIO17
-  rx_pin: GPIO18
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+###  tx_pin: GPIO17
+###  rx_pin: GPIO18
 #################################################################
 
   baud_rate: 9600
