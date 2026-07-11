@@ -2,6 +2,8 @@
 
 Firmware ESPHome che sostituisce il modulo WiFi originale (ESP-WROOM-02) del **Princess Smart Tower Fan (modello: 350000; part number: 01.350000.01.001)**, eliminando completamente la dipendenza dal cloud del produttore. Controllo 100% locale via Home Assistant, dashboard web integrata, automazioni, e integrazione vocale Alexa/Matter — nessun account, nessun server esterno, nessuna latenza cloud.
 
+
+##  Aggiunto progetto basic4android per poter pilotare il ventilatore senza alexa e homeassistant, comunicazioni TCP dirette.
 ## ✨ Perché questo progetto
 
 Il fan originale comunica (o meglio, nel mio caso, dovrebbe comunicare, cosa non fattibile per: 1 app obsoleta e nn compatibile con versioen android del mio cellulare; 2 anche installandola su cellulare datato, non c'e stato verso di fare il pairing!!!!) con l'app "HomeWizard Climate" solo tramite server del produttore, anche per comandi impartiti da touch fisico. Questo firmware **ricrea fedelmente ogni comando originale** (velocità, oscillazione, modalità natural/sleep, timer 0-8h) via protocollo UART nativo del controller, sostituendo il modulo WiFi con un ESP32 che parla direttamente con l'hardware — zero cloud, zero telemetria esterna.
