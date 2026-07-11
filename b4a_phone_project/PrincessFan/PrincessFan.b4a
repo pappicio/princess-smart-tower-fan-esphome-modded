@@ -1,0 +1,338 @@
+﻿Build1=Default,Princess.Fan.Commander
+File1=Layout.bal
+FileGroup1=Default Group
+Group=Default Group
+Library1=byteconverter
+Library2=core
+Library3=okhttputils2
+Library4=xui
+Library5=json
+ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: https://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="35"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~CreateResourceFromFile(Macro, Themes.LightTheme)~\n~'End of default text.~\n~SetApplicationAttribute(android:usesCleartextTraffic, "true")~\n~~\n~
+Module1=Starter
+NumberOfFiles=1
+NumberOfLibraries=5
+NumberOfModules=1
+Version=13.5
+@EndOfDesignText@
+#Region  Project Attributes 
+	#ApplicationLabel: Princess Fan Commander
+	#VersionCode: 1
+	#VersionName: 
+	'SupportedOrientations possible values: unspecified, landscape or portrait.
+	#SupportedOrientations: unspecified
+	#CanInstallToExternalStorage: False
+#End Region
+
+#Region  Activity Attributes 
+	#FullScreen: False
+	#IncludeTitle: True
+#End Region
+Sub Process_Globals
+	Private xui As XUI
+	Private currentSpeed As Int = 1
+	Private swingOn As Boolean = False
+	Private modeBits As Int = 0
+	Private timerSteps As Int = 0
+	Private serveAggiornamento  As Boolean=False
+	Private polltimer As Timer 
+	Private beepMode As Int=0
+End Sub
+
+Sub Globals
+	Private btnOn As Button
+	Private btnOff As Button
+	Private btnSpeed1 As Button
+	Private btnSpeed2 As Button
+	Private btnSpeed3 As Button
+	Private btnSwingOn As Button
+	Private btnSwingOff As Button
+	Private btnNormal As Button
+	Private btnNatural As Button
+	Private btnSleep As Button
+	Private EditText1 As EditText
+ 
+	Private lblSpeed As Label
+	Private lblSwing As Label
+	Private lblMode As Label
+	Private btnBeepNone As Button
+	Private btnBeepOn As Button
+	
+	Private btnBeepOff As Button
+	Private lblBeep As Label
+	Private Label2 As Label
+End Sub
+Sub LeggiStatoIniziale
+	Dim job As HttpJob
+	job.Initialize("stato_iniziale", Me)
+	job.Download("http://" & EditText1.Text.Trim  & "/fan/Ventilatore")
+	Wait For (job) JobDone(job As HttpJob)
+
+	If job.Success Then
+		Dim jsonStr As String = job.GetString
+		Log("Stato ricevuto: " & jsonStr)
+
+		Dim parser As JSONParser
+		parser.Initialize(jsonStr)
+		Dim root As Map = parser.NextObject
+
+		Dim statoOn As Boolean = root.Get("value")
+		Dim speedLevel As Int = root.Get("speed_level")
+		Dim oscillation As Boolean = root.Get("oscillation")
+
+		currentSpeed = speedLevel
+		swingOn = oscillation
+
+		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
+
+		AggiornaUISelezione(statoOn)
+	Else
+		Log("Errore lettura stato: " & job.ErrorMessage)
+	End If
+	job.Release
+End Sub
+
+Sub AggiornaUISelezione(statoOn As Boolean)
+	If statoOn Then
+		lblSpeed.Text = "Velocità: " & currentSpeed
+	Else
+		lblSpeed.Text = "Spento"
+	End If
+
+	If swingOn Then
+		lblSwing.Text = "Swing: ON"
+	Else
+		lblSwing.Text = "Swing: OFF"
+	End If
+End Sub
+
+
+Sub Activity_Create(FirstTime As Boolean)
+	Activity.LoadLayout("Layout")
+	LeggiStatoIniziale
+	LeggiBeepMode
+	LeggiModalita
+	polltimer.Initialize("pollTimer", 1000)
+	polltimer.Enabled = True
+	
+End Sub
+ 
+Sub pollTimer_Tick
+	If serveAggiornamento Then
+		serveAggiornamento = False
+		LeggiStatoIniziale
+		LeggiBeepMode
+		LeggiModalita
+		polltimer.Enabled = False
+	End If
+End Sub
+
+
+Sub HexPad2(valore As Int) As String
+	Dim h As String = Bit.ToHexString(valore)
+	Do While h.Length < 2
+		h = "0" & h
+	Loop
+	Return h
+End Sub
+
+Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
+	Dim job As HttpJob
+	job.Initialize("", Me)
+	Dim url As String = "http://" & EditText1.Text.Trim & "/text/Ventilatore Comando Raw/set?value=" & comandoHex
+	job.PostString(url, "")
+	job.GetRequest.Timeout = 3000
+	job.GetRequest.SetHeader("Content-Length", "0")
+
+	Wait For (job) JobDone(job As HttpJob)
+	If job.Success Then
+		Log("Inviato: " & comandoHex)
+		Dim msg As String = "Comando: " & comandoHex
+		If infoExtra <> "" Then
+			msg = msg & " (" & infoExtra & ")"
+		End If
+		ToastMessageShow(msg, False)
+		polltimer.Enabled=True
+		serveAggiornamento = True
+	Else
+		Log("Errore: " & job.ErrorMessage)
+		ToastMessageShow("Errore: " & job.ErrorMessage, True)
+	End If
+	job.Release
+End Sub
+
+
+
+Sub LeggiBeepMode
+	Dim job As HttpJob
+	job.Initialize("stato_beep", Me)
+	job.Download("http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro")
+	job.GetRequest.Timeout = 3000
+	Wait For (job) JobDone(job As HttpJob)
+
+	If job.Success Then
+		Dim parser As JSONParser
+		parser.Initialize(job.GetString)
+		Dim root As Map = parser.NextObject
+		Dim opzione As String = root.Get("state")
+
+		If opzione = "Beep Breve" Then
+			lblBeep.Text = "Beep: ON"
+		Else
+			lblBeep.Text = "Beep: OFF"
+		End If
+
+		Log("Beep sincronizzato: " & opzione)
+	Else
+		Log("Errore lettura beep: " & job.ErrorMessage)
+	End If
+	job.Release
+End Sub
+
+Sub LeggiModalita
+	Dim job As HttpJob
+	job.Initialize("stato_mode", Me)
+	job.Download("http://" & EditText1.Text.Trim & "/text_sensor/Fan Mode")
+	job.GetRequest.Timeout = 3000
+	Wait For (job) JobDone(job As HttpJob)
+
+	If job.Success Then
+		Dim parser As JSONParser
+		parser.Initialize(job.GetString)
+		Dim root As Map = parser.NextObject
+		Dim modeStr As String = root.Get("state")
+
+		If modeStr = "natural" Then
+			modeBits = 8
+			lblMode.Text = "Mod: Natural"
+		Else If modeStr = "sleep" Then
+			modeBits = 16
+			lblMode.Text = "Mod: Sleep"
+		Else
+			modeBits = 0
+			lblMode.Text = "Mod: Normal"
+		End If
+
+		Log("Modalità sincronizzata: " & modeStr)
+	Else
+		Log("Errore lettura modalità: " & job.ErrorMessage)
+	End If
+	job.Release
+End Sub
+Sub ImpostaBeepMode(modo As String)
+	Dim job As HttpJob
+	job.Initialize("", Me)
+	Dim url As String = "http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro/set?option=" & modo
+	job.PostString(url, "")
+	job.GetRequest.Timeout = 3000
+	job.GetRequest.SetHeader("Content-Length", "0")
+
+	Wait For (job) JobDone(job As HttpJob)
+	If job.Success Then
+		ToastMessageShow("Comando inviato: " & modo, False)
+		Log("Beep mode impostato: " & modo)
+	Else
+		Log("Errore: " & job.ErrorMessage)
+	End If
+	job.Release
+End Sub
+
+Sub btnBeepOff_Click
+	lblBeep.Text = "Beep: OFF"
+	ImpostaBeepMode("Nessun Suono")
+End Sub
+
+Sub btnBeepOn_Click
+	lblBeep.Text = "Beep: ON"
+	ImpostaBeepMode("Beep Breve")
+End Sub
+
+Sub InviaStatoCorrente
+	Dim v As Int
+	If currentSpeed = 1 Then
+		v = 3
+	Else If currentSpeed = 2 Then
+		v = 5
+	Else
+		v = 7
+	End If
+
+	Dim timerLow As Int = Bit.ShiftRight(timerSteps, 2)
+	timerLow = Bit.And(timerLow, 63)
+	Dim timerHigh As Int = Bit.And(timerSteps, 3)
+	Dim s As Int = IIf(swingOn, 64, 0)
+
+	Dim byte3 As Int = Bit.Or(timerLow, s)
+	Dim byte4 As Int = Bit.Or(Bit.Or(v, modeBits), Bit.ShiftLeft(timerHigh, 6))
+
+	Dim comandoCompleto As String = "AA:A0:" & HexPad2(byte3) & ":" & HexPad2(byte4)
+
+	Dim modeStr As String
+	If modeBits = 8 Then
+		modeStr = "Natural"
+	Else If modeBits = 16 Then
+		modeStr = "Sleep"
+	Else
+		modeStr = "Normal"
+	End If
+
+	InviaComandoRaw(comandoCompleto, modeStr)
+
+ 
+End Sub
+
+Sub JobDone(job As HttpJob)
+	' gestito dentro InviaStatoCorrente
+End Sub
+ 
+
+
+Sub btnOn_Click
+	InviaStatoCorrente
+End Sub
+ 
+
+Sub btnOff_Click
+	InviaComandoRaw("AA:A0:00:02", "OFF")
+End Sub
+
+Sub btnSpeed1_Click
+	currentSpeed = 1
+	InviaStatoCorrente
+End Sub
+
+Sub btnSpeed2_Click
+	currentSpeed = 2
+	InviaStatoCorrente
+End Sub
+
+Sub btnSpeed3_Click
+	currentSpeed = 3
+	InviaStatoCorrente
+End Sub
+
+Sub btnSwingOn_Click
+	swingOn = True
+	InviaStatoCorrente
+End Sub
+
+Sub btnSwingOff_Click
+	swingOn = False
+	InviaStatoCorrente
+End Sub
+
+
+
+Sub btnNormal_Click
+	modeBits = 0
+	InviaStatoCorrente
+End Sub
+
+Sub btnNatural_Click
+	modeBits = 8
+	InviaStatoCorrente
+End Sub
+
+Sub btnSleep_Click
+	modeBits = 16
+	InviaStatoCorrente
+End Sub
