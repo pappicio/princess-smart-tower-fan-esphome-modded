@@ -115,7 +115,15 @@ Sub Activity_Create(FirstTime As Boolean)
 	polltimer.Enabled = True
 	
 End Sub
- 
+
+
+
+Sub Activity_Resume
+	serveAggiornamento = False
+	polltimer.Enabled = True
+End Sub
+
+
 Sub pollTimer_Tick
 	If serveAggiornamento Then
 		serveAggiornamento = False
