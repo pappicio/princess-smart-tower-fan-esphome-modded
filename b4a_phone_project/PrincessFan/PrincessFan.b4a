@@ -37,7 +37,8 @@ Sub Process_Globals
 	Private polltimer As Timer 
 	Private beepMode As Int=0
 	Private timerDebounce As Timer
-
+	Private kvs As KeyValueStore
+	
 End Sub
 
 Sub Globals
@@ -112,6 +113,16 @@ End Sub
 
 Sub Activity_Create(FirstTime As Boolean)
 	Activity.LoadLayout("Layout")
+	
+	kvs.Initialize(File.DirInternal, "settings.dat")
+
+	' Carica l'IP salvato, o usa il default se è la prima apertura
+	If kvs.ContainsKey("ip_ventilatore") Then
+		EditText1.Text = kvs.Get("ip_ventilatore")
+	Else
+		EditText1.Text = "192.168.1.102"
+	End If
+	
 	LeggiStatoIniziale
 	LeggiBeepMode
 	LeggiModalita
@@ -121,6 +132,9 @@ Sub Activity_Create(FirstTime As Boolean)
 	polltimer.Enabled = True
 End Sub
 
+Sub EditText1_LostFocus
+	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
+End Sub
 
 Sub Activity_Resume
 	serveAggiornamento = False
