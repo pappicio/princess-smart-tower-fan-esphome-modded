@@ -100,7 +100,7 @@ End Sub
 
 Sub AggiornaUISelezione(statoOn As Boolean)
 	If statoOn Then
-		lblSpeed.Text = "Velocità: " & currentSpeed
+		lblSpeed.Text = "vel.: " & currentSpeed
 	Else
 		lblSpeed.Text = "Spento"
 	End If
