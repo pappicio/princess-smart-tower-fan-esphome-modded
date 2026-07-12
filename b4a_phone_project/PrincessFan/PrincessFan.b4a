@@ -4,13 +4,14 @@ FileGroup1=Default Group
 Group=Default Group
 Library1=byteconverter
 Library2=core
-Library3=okhttputils2
-Library4=xui
-Library5=json
+Library3=json
+Library4=keyvaluestore2
+Library5=okhttputils2
+Library6=xui
 ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: https://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="35"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~CreateResourceFromFile(Macro, Themes.LightTheme)~\n~'End of default text.~\n~SetApplicationAttribute(android:usesCleartextTraffic, "true")~\n~~\n~
 Module1=Starter
 NumberOfFiles=1
-NumberOfLibraries=5
+NumberOfLibraries=6
 NumberOfModules=1
 Version=13.5
 @EndOfDesignText@
@@ -65,6 +66,7 @@ Sub Globals
 	Private Label2 As Label
 	Private sbTimer As SeekBar
 	Private lblTimerValore As Label
+	Private Buttonok As Button
 End Sub
 Sub LeggiStatoIniziale
 	Dim job As HttpJob
@@ -417,4 +419,9 @@ End Sub
 Sub btnSleep_Click
 	modeBits = 16
 	InviaStatoCorrente
+End Sub
+
+Private Sub Buttonok_Click
+	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
+	ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
 End Sub
