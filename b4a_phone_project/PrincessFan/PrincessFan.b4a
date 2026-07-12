@@ -36,6 +36,8 @@ Sub Process_Globals
 	Private serveAggiornamento  As Boolean=False
 	Private polltimer As Timer 
 	Private beepMode As Int=0
+	Private timerDebounce As Timer
+
 End Sub
 
 Sub Globals
@@ -60,6 +62,8 @@ Sub Globals
 	Private btnBeepOff As Button
 	Private lblBeep As Label
 	Private Label2 As Label
+	Private sbTimer As SeekBar
+	Private lblTimerValore As Label
 End Sub
 Sub LeggiStatoIniziale
 	Dim job As HttpJob
@@ -111,11 +115,11 @@ Sub Activity_Create(FirstTime As Boolean)
 	LeggiStatoIniziale
 	LeggiBeepMode
 	LeggiModalita
+	LeggiTimer
+	timerDebounce.Initialize("timerDebounce", 1000)
 	polltimer.Initialize("pollTimer", 1000)
 	polltimer.Enabled = True
-	
 End Sub
-
 
 
 Sub Activity_Resume
@@ -123,6 +127,57 @@ Sub Activity_Resume
 	polltimer.Enabled = True
 End Sub
 
+Sub sbTimer_ValueChanged (Value As Int, UserChanged As Boolean)
+	Dim minuti As Int = Value * 10
+	Dim ore As Int = minuti / 60
+	Dim minResto As Int = minuti Mod 60
+
+	If minuti = 0 Then
+		lblTimerValore.Text = "Timer: Off"
+	Else If ore = 0 Then
+		lblTimerValore.Text = minResto & " min"
+	Else If minResto = 0 Then
+		lblTimerValore.Text = ore & " " & IIf(ore = 1, "ora", "ore")
+	Else
+		lblTimerValore.Text = ore & " " & IIf(ore = 1, "ora e " , "ore e ") & minResto & " min"
+	End If
+	
+	Dim minuti As Int = sbTimer.Value * 10
+	timerSteps = minuti / 2
+	' Solo se il cambio è dovuto al dito dell'utente (non a un aggiornamento programmatico)
+	If UserChanged Then
+		timerDebounce.Enabled = False
+		timerDebounce.Enabled = True   ' riavvia il countdown da zero ad ogni movimento
+	End If
+End Sub
+
+Sub timerDebounce_Tick
+	timerDebounce.Enabled = False   ' scatta una sola volta
+	InviaStatoCorrente
+End Sub
+
+Sub LeggiTimer
+	Dim job As HttpJob
+	job.Initialize("stato_timer", Me)
+	job.Download("http://" & EditText1.Text.Trim & "/number/Ventilatore Timer (minuti)")
+	job.GetRequest.Timeout = 3000
+	Wait For (job) JobDone(job As HttpJob)
+
+	If job.Success Then
+		Dim parser As JSONParser
+		parser.Initialize(job.GetString)
+		Dim root As Map = parser.NextObject
+		Dim minutiReali As Int = root.Get("value")
+
+		sbTimer.Value = minutiReali / 10
+		sbTimer_ValueChanged(sbTimer.Value, False)
+
+		Log("Timer sincronizzato: " & minutiReali & " min")
+	Else
+		Log("Errore lettura timer: " & job.ErrorMessage)
+	End If
+	job.Release
+End Sub
 
 Sub pollTimer_Tick
 	If serveAggiornamento Then
@@ -130,6 +185,7 @@ Sub pollTimer_Tick
 		LeggiStatoIniziale
 		LeggiBeepMode
 		LeggiModalita
+		LeggiTimer
 		polltimer.Enabled = False
 	End If
 End Sub
@@ -164,6 +220,8 @@ Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
 	Else
 		Log("Errore: " & job.ErrorMessage)
 		ToastMessageShow("Errore: " & job.ErrorMessage, True)
+		polltimer.Enabled=False
+		serveAggiornamento = False
 	End If
 	job.Release
 End Sub
@@ -283,10 +341,12 @@ Sub InviaStatoCorrente
 		modeStr = "Normal"
 	End If
 
-	InviaComandoRaw(comandoCompleto, modeStr)
+	Dim minutiTimer As Int = timerSteps * 2
+	Dim infoCompleta As String = modeStr & ", Timer: " & minutiTimer & " min"
 
- 
+	InviaComandoRaw(comandoCompleto, infoCompleta)
 End Sub
+
 
 Sub JobDone(job As HttpJob)
 	' gestito dentro InviaStatoCorrente
