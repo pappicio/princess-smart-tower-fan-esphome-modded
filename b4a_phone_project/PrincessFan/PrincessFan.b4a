@@ -62,16 +62,15 @@ Sub Globals
 	Private Label2 As Label
 	Private sbTimer As SeekBar
 	Private lblTimerValore As Label
+	 
+	 
 	Private Buttonok As Button
 End Sub
 Sub LeggiStatoIniziale
-	If primavolta Then 
-		primavolta=False
-		resettacolori
-	End If
 	Dim job As HttpJob
 	job.Initialize("stato_iniziale", Me)
 	job.Download("http://" & EditText1.Text.Trim  & "/fan/Ventilatore")
+	job.GetRequest.Timeout = 500
 	Wait For (job) JobDone(job As HttpJob)
 
 	If job.Success Then
@@ -92,24 +91,37 @@ Sub LeggiStatoIniziale
 		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
 		
 	 
-
+		If primavolta Then
+			primavolta=False
+			resettacolori(True)
+		End If
 		
 		AggiornaUISelezione(statoOn)
 	Else
 		Log("Errore lettura stato: " & job.ErrorMessage)
+		resettacolori(False)
 	End If
 	job.Release
 End Sub
 
-Sub resettacolori
+Sub resettacolori (enabled As Boolean)
+	
 	Dim i As Int
 	For i = 0 To Activity.NumberOfViews - 1
 		Dim v As View = Activity.GetView(i)
+			If enabled=False Then
+				v.Enabled = False
+			Else
+				v.Enabled = True
+			End If
+		
 		If v Is Button Then
 			Dim b As Button = v
 			b.Color = Colors.LightGray   ' colore a tua scelta
 		End If
 	Next
+	EditText1.Enabled=True
+	Buttonok.Enabled=True
 End Sub
 Sub AggiornaUISelezione(statoOn As Boolean)
 	If statoOn Then
@@ -493,4 +505,7 @@ End Sub
 Private Sub Buttonok_Click
 	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
 	ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
+	primavolta=True
+	polltimer.Enabled=True
+	serveAggiornamento = True
 End Sub
