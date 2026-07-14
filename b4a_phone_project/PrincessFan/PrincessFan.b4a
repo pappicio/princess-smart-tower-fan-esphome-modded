@@ -36,10 +36,10 @@ Sub Process_Globals
 	Private timerSteps As Int = 0
 	Private serveAggiornamento  As Boolean=False
 	Private polltimer As Timer 
-	Private beepMode As Int=0
+ 
 	Private timerDebounce As Timer
 	Private kvs As KeyValueStore
-	
+	Private primavolta As Boolean=True
 End Sub
 
 Sub Globals
@@ -55,20 +55,20 @@ Sub Globals
 	Private btnSleep As Button
 	Private EditText1 As EditText
  
-	Private lblSpeed As Label
-	Private lblSwing As Label
-	Private lblMode As Label
-	Private btnBeepNone As Button
 	Private btnBeepOn As Button
 	
 	Private btnBeepOff As Button
-	Private lblBeep As Label
+
 	Private Label2 As Label
 	Private sbTimer As SeekBar
 	Private lblTimerValore As Label
 	Private Buttonok As Button
 End Sub
 Sub LeggiStatoIniziale
+	If primavolta Then 
+		primavolta=False
+		resettacolori
+	End If
 	Dim job As HttpJob
 	job.Initialize("stato_iniziale", Me)
 	job.Download("http://" & EditText1.Text.Trim  & "/fan/Ventilatore")
@@ -90,7 +90,10 @@ Sub LeggiStatoIniziale
 		swingOn = oscillation
 
 		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
+		
+	 
 
+		
 		AggiornaUISelezione(statoOn)
 	Else
 		Log("Errore lettura stato: " & job.ErrorMessage)
@@ -98,22 +101,43 @@ Sub LeggiStatoIniziale
 	job.Release
 End Sub
 
+Sub resettacolori
+	Dim i As Int
+	For i = 0 To Activity.NumberOfViews - 1
+		Dim v As View = Activity.GetView(i)
+		If v Is Button Then
+			Dim b As Button = v
+			b.Color = Colors.LightGray   ' colore a tua scelta
+		End If
+	Next
+End Sub
 Sub AggiornaUISelezione(statoOn As Boolean)
 	If statoOn Then
-		lblSpeed.Text = "vel.: " & currentSpeed
+		btnOn.Color=Colors.Gray
+		btnOff.Color=Colors.lightGray
 	Else
-		lblSpeed.Text = "Spento"
+		btnOff.Color=Colors.Gray
+		btnOn.Color=Colors.lightGray
 	End If
 
-	If swingOn Then
-		lblSwing.Text = "Swing: ON"
+	If currentSpeed=1 Then
+		btnSpeed1.Color=Colors.Gray
+	else if currentSpeed=2 Then
+		btnSpeed2.Color=Colors.Gray
 	Else
-		lblSwing.Text = "Swing: OFF"
+		btnSpeed3.Color=Colors.Gray
+	End If
+	
+	If swingOn Then
+		btnSwingOn.color=Colors.Gray
+	Else
+		btnSwingOff.color=Colors.Gray
 	End If
 End Sub
 
 
 Sub Activity_Create(FirstTime As Boolean)
+	
 	Activity.LoadLayout("Layout")
 	
 	kvs.Initialize(File.DirInternal, "settings.dat")
@@ -129,8 +153,8 @@ Sub Activity_Create(FirstTime As Boolean)
 	LeggiBeepMode
 	LeggiModalita
 	LeggiTimer
-	timerDebounce.Initialize("timerDebounce", 1000)
-	polltimer.Initialize("pollTimer", 1000)
+	timerDebounce.Initialize("timerDebounce", 500)
+	polltimer.Initialize("pollTimer", 500)
 	polltimer.Enabled = True
 End Sub
 
@@ -176,7 +200,7 @@ Sub LeggiTimer
 	Dim job As HttpJob
 	job.Initialize("stato_timer", Me)
 	job.Download("http://" & EditText1.Text.Trim & "/number/Ventilatore Timer (minuti)")
-	job.GetRequest.Timeout = 3000
+	job.GetRequest.Timeout = 500
 	Wait For (job) JobDone(job As HttpJob)
 
 	If job.Success Then
@@ -220,7 +244,7 @@ Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
 	job.Initialize("", Me)
 	Dim url As String = "http://" & EditText1.Text.Trim & "/text/Ventilatore Comando Raw/set?value=" & comandoHex
 	job.PostString(url, "")
-	job.GetRequest.Timeout = 3000
+	job.GetRequest.Timeout = 500
 	job.GetRequest.SetHeader("Content-Length", "0")
 
 	Wait For (job) JobDone(job As HttpJob)
@@ -248,7 +272,7 @@ Sub LeggiBeepMode
 	Dim job As HttpJob
 	job.Initialize("stato_beep", Me)
 	job.Download("http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro")
-	job.GetRequest.Timeout = 3000
+	job.GetRequest.Timeout = 500
 	Wait For (job) JobDone(job As HttpJob)
 
 	If job.Success Then
@@ -258,9 +282,11 @@ Sub LeggiBeepMode
 		Dim opzione As String = root.Get("state")
 
 		If opzione = "Beep Breve" Then
-			lblBeep.Text = "Beep: ON"
+			btnBeepOn.Color=Colors.Gray
+			 
 		Else
-			lblBeep.Text = "Beep: OFF"
+			btnBeepOff.Color=Colors.Gray
+			 
 		End If
 
 		Log("Beep sincronizzato: " & opzione)
@@ -274,7 +300,7 @@ Sub LeggiModalita
 	Dim job As HttpJob
 	job.Initialize("stato_mode", Me)
 	job.Download("http://" & EditText1.Text.Trim & "/text_sensor/Fan Mode")
-	job.GetRequest.Timeout = 3000
+	job.GetRequest.Timeout = 500
 	Wait For (job) JobDone(job As HttpJob)
 
 	If job.Success Then
@@ -282,16 +308,19 @@ Sub LeggiModalita
 		parser.Initialize(job.GetString)
 		Dim root As Map = parser.NextObject
 		Dim modeStr As String = root.Get("state")
-
+	
 		If modeStr = "natural" Then
 			modeBits = 8
-			lblMode.Text = "Mod: Natural"
+			btnNatural.Color=Colors.gray
+		
 		Else If modeStr = "sleep" Then
 			modeBits = 16
-			lblMode.Text = "Mod: Sleep"
+			btnSleep.Color=Colors.gray
+
 		Else
 			modeBits = 0
-			lblMode.Text = "Mod: Normal"
+			btnNormal.Color=Colors.gray
+
 		End If
 
 		Log("Modalità sincronizzata: " & modeStr)
@@ -305,7 +334,7 @@ Sub ImpostaBeepMode(modo As String)
 	job.Initialize("", Me)
 	Dim url As String = "http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro/set?option=" & modo
 	job.PostString(url, "")
-	job.GetRequest.Timeout = 3000
+	job.GetRequest.Timeout = 500
 	job.GetRequest.SetHeader("Content-Length", "0")
 
 	Wait For (job) JobDone(job As HttpJob)
@@ -319,16 +348,19 @@ Sub ImpostaBeepMode(modo As String)
 End Sub
 
 Sub btnBeepOff_Click
-	lblBeep.Text = "Beep: OFF"
 	ImpostaBeepMode("Nessun Suono")
+	btnBeepOff.Color=Colors.Gray
+	btnBeepOn.Color=Colors.LightGray
 End Sub
 
 Sub btnBeepOn_Click
-	lblBeep.Text = "Beep: ON"
 	ImpostaBeepMode("Beep Breve")
+	btnBeepOn.Color=Colors.Gray
+	btnBeepOff.Color=Colors.LightGray
 End Sub
 
-Sub InviaStatoCorrente
+Sub InviaStatoCorrente 
+	
 	Dim v As Int
 	If currentSpeed = 1 Then
 		v = 3
@@ -371,35 +403,60 @@ End Sub
 
 
 Sub btnOn_Click
+	btnOn.Color=Colors.Gray
+	btnOff.Color=Colors.LightGray
+ 
 	InviaStatoCorrente
 End Sub
  
 
 Sub btnOff_Click
 	InviaComandoRaw("AA:A0:00:02", "OFF")
+	btnOff.Color=Colors.Gray
+	btnOn.Color=Colors.LightGray
 End Sub
 
 Sub btnSpeed1_Click
 	currentSpeed = 1
 	InviaStatoCorrente
+	btnSpeed1.Color=Colors.LightGray
+	btnSpeed2.Color=Colors.LightGray
+	btnSpeed3.Color=Colors.LightGray
+	btnSpeed1.Color=Colors.Gray
+	
+	
 End Sub
 
 Sub btnSpeed2_Click
 	currentSpeed = 2
 	InviaStatoCorrente
+	btnSpeed1.Color=Colors.LightGray
+	btnSpeed2.Color=Colors.LightGray
+	btnSpeed3.Color=Colors.LightGray
+	btnSpeed2.Color=Colors.Gray
+	
 End Sub
 
 Sub btnSpeed3_Click
 	currentSpeed = 3
 	InviaStatoCorrente
+	btnSpeed1.Color=Colors.LightGray
+	btnSpeed2.Color=Colors.LightGray
+	btnSpeed3.Color=Colors.LightGray
+	btnSpeed3.Color=Colors.Gray
+	
 End Sub
 
 Sub btnSwingOn_Click
+	btnSwingOff.Color=Colors.LightGray
+	btnSwingOn.Color=Colors.Gray
 	swingOn = True
 	InviaStatoCorrente
 End Sub
 
 Sub btnSwingOff_Click
+	btnSwingOff.Color=Colors.Gray
+	btnSwingOn.Color=Colors.lightGray
 	swingOn = False
 	InviaStatoCorrente
 End Sub
@@ -407,16 +464,28 @@ End Sub
 
 
 Sub btnNormal_Click
+	btnNormal.Color=Colors.LightGray
+	btnNatural.Color=Colors.LightGray
+	btnSleep.Color=Colors.LightGray
+	btnNormal.Color=Colors.Gray
 	modeBits = 0
 	InviaStatoCorrente
 End Sub
 
 Sub btnNatural_Click
+	btnNormal.Color=Colors.LightGray
+	btnNatural.Color=Colors.LightGray
+	btnSleep.Color=Colors.LightGray
+	btnNatural.Color=Colors.Gray
 	modeBits = 8
 	InviaStatoCorrente
 End Sub
 
 Sub btnSleep_Click
+	btnNormal.Color=Colors.LightGray
+	btnNatural.Color=Colors.LightGray
+	btnSleep.Color=Colors.LightGray
+	btnSleep.Color=Colors.Gray
 	modeBits = 16
 	InviaStatoCorrente
 End Sub
