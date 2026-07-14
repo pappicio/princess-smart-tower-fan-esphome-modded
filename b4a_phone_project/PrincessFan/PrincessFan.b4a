@@ -178,7 +178,6 @@ Sub EditText1_LostFocus
 End Sub
 
 Sub Activity_Resume
-	primavolta=True
 	serveAggiornamento = True
 	polltimer.Enabled = False
 	polltimer.Enabled = True
