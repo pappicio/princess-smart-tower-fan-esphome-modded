@@ -177,7 +177,17 @@ Sub EditText1_LostFocus
 	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
 End Sub
 
-Sub Activity_Resume
+ub Activity_Resume
+	Dim i As Int
+	For i = 0 To Activity.NumberOfViews - 1
+		Dim v As View = Activity.GetView(i)
+		If v Is Button Then
+			Dim b As Button = v
+			b.Color = Colors.LightGray   ' colore a tua scelta
+		End If
+	Next
+	EditText1.Enabled=True
+	Buttonok.Enabled=True
 	serveAggiornamento = True
 	polltimer.Enabled = False
 	polltimer.Enabled = True
