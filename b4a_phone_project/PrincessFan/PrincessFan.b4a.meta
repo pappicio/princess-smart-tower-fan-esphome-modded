@@ -4,6 +4,6 @@ ModuleBreakpoints0=
 ModuleBreakpoints1=
 ModuleClosedNodes0=
 ModuleClosedNodes1=1
-NavigationStack=Main,btnBeepOff_Click,335,0,Main,btnBeepOn_Click,340,0,Main,LeggiTimer,192,0,Main,LeggiStatoIniziale,49,6,Main,Activity_Create,143,0,Main,InviaComandoRaw,250,0,Main,Buttonok_Click,490,4,Designer Visuale,Layout.bal,-100,6,Main,resettacolori,105,6,Main,Globals,50,0
+NavigationStack=Main,pollTimer_Tick,220,0,Main,btnOff_Click,407,0,Main,Buttonok_Click,491,4,Main,btnNormal_Click,463,0,Main,btnSleep_Click,484,0,Main,Process_Globals,24,0,Main,LeggiStatoIniziale,81,0,Main,Activity_Create,154,3,Main,Activity_Resume,165,6,Main,EditText1_LostFocus,158,0
 SelectedBuild=0
 VisibleModules=1

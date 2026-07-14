@@ -67,6 +67,8 @@ Sub Globals
 	Private Buttonok As Button
 End Sub
 Sub LeggiStatoIniziale
+
+	
 	Dim job As HttpJob
 	job.Initialize("stato_iniziale", Me)
 	job.Download("http://" & EditText1.Text.Trim  & "/fan/Ventilatore")
@@ -89,13 +91,12 @@ Sub LeggiStatoIniziale
 		swingOn = oscillation
 
 		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
-		
-	 
+	
+			 
 		If primavolta Then
 			primavolta=False
 			resettacolori(True)
 		End If
-		
 		AggiornaUISelezione(statoOn)
 	Else
 		Log("Errore lettura stato: " & job.ErrorMessage)
@@ -160,13 +161,15 @@ Sub Activity_Create(FirstTime As Boolean)
 	Else
 		EditText1.Text = "192.168.1.102"
 	End If
+	If FirstTime Then
+		LeggiStatoIniziale
+		LeggiBeepMode
+		LeggiModalita
+		LeggiTimer
+	End If
 	
-	LeggiStatoIniziale
-	LeggiBeepMode
-	LeggiModalita
-	LeggiTimer
-	timerDebounce.Initialize("timerDebounce", 500)
-	polltimer.Initialize("pollTimer", 500)
+	timerDebounce.Initialize("timerDebounce", 750)
+	polltimer.Initialize("pollTimer", 750)
 	polltimer.Enabled = True
 End Sub
 
@@ -175,7 +178,9 @@ Sub EditText1_LostFocus
 End Sub
 
 Sub Activity_Resume
-	serveAggiornamento = False
+	primavolta=True
+	serveAggiornamento = True
+	polltimer.Enabled = False
 	polltimer.Enabled = True
 End Sub
 
@@ -505,7 +510,6 @@ End Sub
 Private Sub Buttonok_Click
 	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
 	ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
-	primavolta=True
 	polltimer.Enabled=True
 	serveAggiornamento = True
 End Sub
