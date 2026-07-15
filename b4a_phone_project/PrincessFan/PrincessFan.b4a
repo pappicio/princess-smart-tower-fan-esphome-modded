@@ -2,16 +2,15 @@
 File1=Layout.bal
 FileGroup1=Default Group
 Group=Default Group
-Library1=byteconverter
-Library2=core
-Library3=json
-Library4=keyvaluestore2
-Library5=okhttputils2
-Library6=xui
+Library1=core
+Library2=json
+Library3=keyvaluestore2
+Library4=okhttputils2
+Library5=xui
 ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: https://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="35"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~CreateResourceFromFile(Macro, Themes.LightTheme)~\n~'End of default text.~\n~SetApplicationAttribute(android:usesCleartextTraffic, "true")~\n~~\n~
 Module1=Starter
 NumberOfFiles=1
-NumberOfLibraries=6
+NumberOfLibraries=5
 NumberOfModules=1
 Version=13.5
 @EndOfDesignText@
@@ -40,6 +39,8 @@ Sub Process_Globals
 	Private timerDebounce As Timer
 	Private kvs As KeyValueStore
 	Private primavolta As Boolean=True
+	Private ventilatori As List
+	
 End Sub
 
 Sub Globals
@@ -65,6 +66,9 @@ Sub Globals
 	 
 	 
 	Private Buttonok As Button
+ 
+	Private Spinner1 As Spinner
+	 
 End Sub
 Sub LeggiStatoIniziale
 
@@ -111,7 +115,10 @@ Sub resettacolori (enabled As Boolean)
 	For i = 0 To Activity.NumberOfViews - 1
 		Dim v As View = Activity.GetView(i)
 			If enabled=False Then
+				If v <>Spinner1 Then
 				v.Enabled = False
+				End If
+			
 			Else
 				v.Enabled = True
 			End If
@@ -154,28 +161,43 @@ Sub Activity_Create(FirstTime As Boolean)
 	Activity.LoadLayout("Layout")
 	
 	kvs.Initialize(File.DirInternal, "settings.dat")
-
+	ventilatori.Initialize
+	ventilatori.Clear
+	Spinner1.Clear
+	For x=0 To 9
+		If kvs.ContainsKey("ventilatore" & x) Then
+			ventilatori.Add(kvs.Get("ventilatore" & x))
+			Spinner1.Add((kvs.Get("ventilatore" & x)))
+		End If
+	Next
+	
 	' Carica l'IP salvato, o usa il default se è la prima apertura
 	If kvs.ContainsKey("ip_ventilatore") Then
 		EditText1.Text = kvs.Get("ip_ventilatore")
 	Else
-		EditText1.Text = "192.168.1.102"
+		EditText1.Text = "192.168.1.1"
 	End If
+	For x=0 To ventilatori.Size-1
+		Dim s As String=ventilatori.Get(x)
+		If s=EditText1.Text Then 
+			Spinner1.SelectedIndex=x
+		End If
+	Next
 	If FirstTime Then
 		LeggiStatoIniziale
 		LeggiBeepMode
 		LeggiModalita
 		LeggiTimer
+ 
+		 
+		
 	End If
 	
-	timerDebounce.Initialize("timerDebounce", 750)
-	polltimer.Initialize("pollTimer", 750)
+	timerDebounce.Initialize("timerDebounce", 1000)
+	polltimer.Initialize("pollTimer", 1000)
 	polltimer.Enabled = True
 End Sub
-
-Sub EditText1_LostFocus
-	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
-End Sub
+ 
 
 Sub Activity_Resume
 	primavolta=True
@@ -508,8 +530,65 @@ Sub btnSleep_Click
 End Sub
 
 Private Sub Buttonok_Click
+	 
 	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
+	Dim b As Boolean=False
+	Dim x As Int=0
+	For x=0 To ventilatori.Size-1
+		Dim s As String=ventilatori.Get(x)
+		If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then 
+			b=True
+			Exit
+		End If
+	Next
+	If b=False Then 
+		kvs.Put("ventilatore" & x, EditText1.Text.Trim)
+		ventilatori.Add(EditText1.Text.Trim)
+		Spinner1.Add(EditText1.Text.Trim)
+		Spinner1.SelectedIndex=x
+	End If
+	EditText1.Visible=False
+	Spinner1.Visible=True
+	Spinner1.SelectedIndex=x
+	kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
+		
 	ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
 	polltimer.Enabled=True
 	serveAggiornamento = True
+End Sub
+
+Private Sub Spinner1_ItemClick (Position As Int, Value As Object)
+	EditText1.Text=Spinner1.SelectedItem
+End Sub
+
+Private Sub Buttonok_LongClick
+	If Spinner1.Visible=False Then
+		
+		Dim x As Int=0
+		Dim b As Boolean=False
+		For x=0 To ventilatori.Size-1
+			Dim s As String=ventilatori.Get(x)
+			If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then
+				b=True
+				Exit
+			End If
+		Next
+		If b=False Then
+			kvs.Put("ventilatore" & x , EditText1.Text.Trim)
+			ventilatori.Add(EditText1.Text.Trim)
+			Spinner1.Add(EditText1.Text.Trim)
+			Spinner1.SelectedIndex=x
+		End If
+		kvs.Put("ip_ventilatore"  , EditText1.Text.Trim)
+		
+		
+		EditText1.Visible=False
+		Spinner1.Visible=True
+	Else
+		EditText1.Text=Spinner1.SelectedItem
+		EditText1.Visible=True
+		Spinner1.Visible=False
+	End If
+	
+	
 End Sub
