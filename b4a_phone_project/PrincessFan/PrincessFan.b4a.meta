@@ -1,9 +1,9 @@
 ﻿ModuleBookmarks0=
 ModuleBookmarks1=
-ModuleBreakpoints0=126
+ModuleBreakpoints0=
 ModuleBreakpoints1=
 ModuleClosedNodes0=
 ModuleClosedNodes1=1
-NavigationStack=Main,resettacolori,117,0,Main,LeggiBeepMode,332,0,Main,InviaComandoRaw,301,0,Main,LeggiTimer,250,0,Main,applica_modifiche,527,0,Main,btnOn_Click,440,0,Main,ImpostaBeepMode,381,1,Main,pannello,62,0,Main,LeggiStatoIniziale,105,0,Main,pollTimer_Tick,257,6
+NavigationStack=Main,pollTimer_Tick,259,6,Main,ImpostaBeepMode,376,1,Main,Process_Globals,24,0,Main,attiva_pannello,49,0,Main,resettacolori,98,0,Main,btnSleep_Click,521,0,Main,Spinner1_ItemClick,576,1,Main,Buttonok_Click,568,2,Main,applica_modifiche,564,6,Main,Buttonok_LongClick,590,6
 SelectedBuild=0
 VisibleModules=1

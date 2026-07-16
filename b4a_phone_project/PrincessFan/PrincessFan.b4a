@@ -35,12 +35,10 @@ Sub Process_Globals
 	Private timerSteps As Int = 0
 	Private serveAggiornamento  As Boolean=False
 	Private polltimer As Timer 
- 
 	Private timerDebounce As Timer
 	Private kvs As KeyValueStore
 	Private primavolta As Boolean=True
 	Private ventilatori As List
-	
 End Sub
 
 Sub Globals
@@ -55,35 +53,27 @@ Sub Globals
 	Private btnNatural As Button
 	Private btnSleep As Button
 	Private EditText1 As EditText
- 
 	Private btnBeepOn As Button
-	
 	Private btnBeepOff As Button
-
 	Private Label2 As Label
 	Private sbTimer As SeekBar
 	Private lblTimerValore As Label
-	 
-	 
 	Private Buttonok As Button
- 
 	Private Spinner1 As Spinner
-	 
 	Private Panel1 As Panel
 End Sub
 
-Sub pannello
+Sub attiva_pannello
 	Panel1.top=0
 	Panel1.Left=0
 	Panel1.Width=Activity.Width
 	Panel1.Height=Activity.Height
 	Panel1.Visible=True
 	Sleep(0)
-	
 End Sub
+
+
 Sub LeggiStatoIniziale
-	 
-	
 	Dim job As HttpJob
 	job.Initialize("stato_iniziale", Me)
 	job.Download("http://" & EditText1.Text.Trim  & "/fan/Ventilatore")
@@ -93,11 +83,9 @@ Sub LeggiStatoIniziale
 	If job.Success Then
 		Dim jsonStr As String = job.GetString
 		Log("Stato ricevuto: " & jsonStr)
-
 		Dim parser As JSONParser
 		parser.Initialize(jsonStr)
 		Dim root As Map = parser.NextObject
-
 		Dim statoOn As Boolean = root.Get("value")
 		Dim speedLevel As Int = root.Get("speed_level")
 		Dim oscillation As Boolean = root.Get("oscillation")
@@ -107,7 +95,6 @@ Sub LeggiStatoIniziale
 
 		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
 	
-			 
 		If primavolta Then
 			primavolta=False
 			resettacolori(True)
@@ -117,14 +104,15 @@ Sub LeggiStatoIniziale
 		Log("Errore lettura stato: " & job.ErrorMessage)
 		resettacolori(False)
 	End If
+	
 	job.Release
 	
-	 
 	Sleep(0)
+	
 End Sub
 
 Sub resettacolori (enabled As Boolean)
-	pannello
+	attiva_pannello
 	Dim i As Int
 	For i = 0 To Activity.NumberOfViews - 1
 		Dim v As View = Activity.GetView(i)
@@ -168,6 +156,8 @@ Sub AggiornaUISelezione(statoOn As Boolean)
 	Else
 		btnSwingOff.color=Colors.Gray
 	End If
+	Sleep(0)
+	
 End Sub
 
 
@@ -179,6 +169,7 @@ Sub Activity_Create(FirstTime As Boolean)
 	ventilatori.Initialize
 	ventilatori.Clear
 	Spinner1.Clear
+	
 	For x=0 To 9
 		If kvs.ContainsKey("ventilatore" & x) Then
 			ventilatori.Add(kvs.Get("ventilatore" & x))
@@ -186,12 +177,12 @@ Sub Activity_Create(FirstTime As Boolean)
 		End If
 	Next
 	
-	' Carica l'IP salvato, o usa il default se è la prima apertura
 	If kvs.ContainsKey("ip_ventilatore") Then
 		EditText1.Text = kvs.Get("ip_ventilatore")
 	Else
 		EditText1.Text = "192.168.1.1"
 	End If
+	
 	For x=0 To ventilatori.Size-1
 		Dim s As String=ventilatori.Get(x)
 		If s=EditText1.Text Then 
@@ -199,10 +190,10 @@ Sub Activity_Create(FirstTime As Boolean)
 		End If
 	Next
  
-	
 	timerDebounce.Initialize("timerDebounce", 1000)
 	polltimer.Initialize("pollTimer", 1000)
 	polltimer.Enabled = True
+	
 End Sub
  
 
@@ -281,7 +272,7 @@ Sub pollTimer_Tick
 		Sleep(50)
 		Panel1.Height=0
 		Panel1.Visible=False
-		
+		Sleep(0)
 	End If
 End Sub
 
@@ -546,39 +537,57 @@ Sub btnSleep_Click
 	InviaStatoCorrente
 End Sub
 
-Sub applica_modifiche
-	pannello
-	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
-	Dim b As Boolean=False
-	Dim x As Int=0
-	For x=0 To ventilatori.Size-1
-		Dim s As String=ventilatori.Get(x)
-		If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then
-			b=True
-			Exit
+Sub applica_modifiche(add As Boolean)
+	If add Then
+		attiva_pannello
+		kvs.Put("ip_ventilatore", EditText1.Text.Trim)
+		Dim b As Boolean=False
+		Dim x As Int=0
+		For x=0 To ventilatori.Size-1
+			Dim s As String=ventilatori.Get(x)
+			If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then
+				b=True
+				Exit
+			End If
+		Next
+		If b=False Then
+			kvs.Put("ventilatore" & x, EditText1.Text.Trim)
+			ventilatori.Add(EditText1.Text.Trim)
+			Spinner1.Add(EditText1.Text.Trim)
+			Spinner1.SelectedIndex=x
 		End If
-	Next
-	If b=False Then
-		kvs.Put("ventilatore" & x, EditText1.Text.Trim)
-		ventilatori.Add(EditText1.Text.Trim)
-		Spinner1.Add(EditText1.Text.Trim)
+		EditText1.Visible=False
+		Spinner1.Visible=True
 		Spinner1.SelectedIndex=x
-	End If
-	EditText1.Visible=False
-	Spinner1.Visible=True
-	Spinner1.SelectedIndex=x
-	kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
+		kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
 		
-	ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
-	primavolta=True
-	Panel1.Visible=True
-	polltimer.Enabled=True
-	serveAggiornamento = True
+		ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
+		primavolta=True
+		Panel1.Visible=True
+		polltimer.Enabled=True
+		serveAggiornamento = True
+	Else
+		kvs.Remove( Spinner1.SelectedItem)
+		ventilatori.RemoveAt(Spinner1.SelectedIndex)
+		Spinner1.RemoveAt(Spinner1.SelectedIndex)
+		Try
+			Spinner1.SelectedIndex=0
+			EditText1.Text=Spinner1.SelectedItem
+			kvs.DeleteAll
+			For x=0 To ventilatori.Size-1
+				kvs.Put("ventilatore" & x, ventilatori.Get(x))
+			Next
+			kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
+			Buttonok_Click
+		Catch
+			Log(LastException)
+		End Try
+	End If
 
 End Sub
 Private Sub Buttonok_Click
 	If EditText1.Visible Then
-	applica_modifiche
+	applica_modifiche(True)
 End If
 
 	
@@ -586,7 +595,7 @@ End Sub
 
 Private Sub Spinner1_ItemClick (Position As Int, Value As Object)
 	EditText1.Text=Spinner1.SelectedItem
-	applica_modifiche
+	applica_modifiche(True)
 End Sub
 
 Private Sub Buttonok_LongClick
@@ -594,7 +603,11 @@ Private Sub Buttonok_LongClick
 		EditText1.Text=Spinner1.SelectedItem
 		EditText1.Visible=True
 		Spinner1.Visible=False
+	Else
+		Msgbox2Async("Eliminare l' IP: " & EditText1.Text,"Elimina IP", "SI","NO", "",null, False)
+		Wait For Msgbox_Result (Result As Int)
+		If Result = DialogResponse.POSITIVE Then
+  			applica_modifiche(False)
+		End If
 	End If
-	
-	
 End Sub
