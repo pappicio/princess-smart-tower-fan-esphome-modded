@@ -69,9 +69,20 @@ Sub Globals
  
 	Private Spinner1 As Spinner
 	 
+	Private Panel1 As Panel
+End Sub
+
+Sub pannello
+	Panel1.top=0
+	Panel1.Left=0
+	Panel1.Width=Activity.Width
+	Panel1.Height=Activity.Height
+	Panel1.Visible=True
+	Sleep(0)
+	
 End Sub
 Sub LeggiStatoIniziale
-
+	 
 	
 	Dim job As HttpJob
 	job.Initialize("stato_iniziale", Me)
@@ -107,18 +118,18 @@ Sub LeggiStatoIniziale
 		resettacolori(False)
 	End If
 	job.Release
+	
+	 
+	Sleep(0)
 End Sub
 
 Sub resettacolori (enabled As Boolean)
-	
+	pannello
 	Dim i As Int
 	For i = 0 To Activity.NumberOfViews - 1
 		Dim v As View = Activity.GetView(i)
 			If enabled=False Then
-				If v <>Spinner1 Then
 				v.Enabled = False
-				End If
-			
 			Else
 				v.Enabled = True
 			End If
@@ -128,9 +139,13 @@ Sub resettacolori (enabled As Boolean)
 			b.Color = Colors.LightGray   ' colore a tua scelta
 		End If
 	Next
+	Spinner1.Enabled=True
 	EditText1.Enabled=True
 	Buttonok.Enabled=True
 End Sub
+
+
+
 Sub AggiornaUISelezione(statoOn As Boolean)
 	If statoOn Then
 		btnOn.Color=Colors.Gray
@@ -183,15 +198,7 @@ Sub Activity_Create(FirstTime As Boolean)
 			Spinner1.SelectedIndex=x
 		End If
 	Next
-	If FirstTime Then
-		LeggiStatoIniziale
-		LeggiBeepMode
-		LeggiModalita
-		LeggiTimer
  
-		 
-		
-	End If
 	
 	timerDebounce.Initialize("timerDebounce", 1000)
 	polltimer.Initialize("pollTimer", 1000)
@@ -201,6 +208,7 @@ End Sub
 
 Sub Activity_Resume
 	primavolta=True
+	Panel1.Visible=True
 	serveAggiornamento = True
 	polltimer.Enabled = False
 	polltimer.Enabled = True
@@ -259,13 +267,21 @@ Sub LeggiTimer
 End Sub
 
 Sub pollTimer_Tick
+	 
 	If serveAggiornamento Then
 		serveAggiornamento = False
 		LeggiStatoIniziale
+		Sleep(50)
 		LeggiBeepMode
+		Sleep(50)
 		LeggiModalita
+		Sleep(50)
 		LeggiTimer
 		polltimer.Enabled = False
+		Sleep(50)
+		Panel1.Height=0
+		Panel1.Visible=False
+		
 	End If
 End Sub
 
@@ -294,6 +310,7 @@ Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
 			msg = msg & " (" & infoExtra & ")"
 		End If
 		ToastMessageShow(msg, False)
+		Panel1.Visible=True
 		polltimer.Enabled=True
 		serveAggiornamento = True
 	Else
@@ -384,6 +401,7 @@ Sub ImpostaBeepMode(modo As String)
 		Log("Errore: " & job.ErrorMessage)
 	End If
 	job.Release
+	
 End Sub
 
 Sub btnBeepOff_Click
@@ -444,7 +462,6 @@ End Sub
 Sub btnOn_Click
 	btnOn.Color=Colors.Gray
 	btnOff.Color=Colors.LightGray
- 
 	InviaStatoCorrente
 End Sub
  
@@ -529,19 +546,19 @@ Sub btnSleep_Click
 	InviaStatoCorrente
 End Sub
 
-Private Sub Buttonok_Click
-	 
+Sub applica_modifiche
+	pannello
 	kvs.Put("ip_ventilatore", EditText1.Text.Trim)
 	Dim b As Boolean=False
 	Dim x As Int=0
 	For x=0 To ventilatori.Size-1
 		Dim s As String=ventilatori.Get(x)
-		If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then 
+		If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then
 			b=True
 			Exit
 		End If
 	Next
-	If b=False Then 
+	If b=False Then
 		kvs.Put("ventilatore" & x, EditText1.Text.Trim)
 		ventilatori.Add(EditText1.Text.Trim)
 		Spinner1.Add(EditText1.Text.Trim)
@@ -553,38 +570,27 @@ Private Sub Buttonok_Click
 	kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
 		
 	ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
+	primavolta=True
+	Panel1.Visible=True
 	polltimer.Enabled=True
 	serveAggiornamento = True
+
+End Sub
+Private Sub Buttonok_Click
+	If EditText1.Visible Then
+	applica_modifiche
+End If
+
+	
 End Sub
 
 Private Sub Spinner1_ItemClick (Position As Int, Value As Object)
 	EditText1.Text=Spinner1.SelectedItem
+	applica_modifiche
 End Sub
 
 Private Sub Buttonok_LongClick
-	If Spinner1.Visible=False Then
-		
-		Dim x As Int=0
-		Dim b As Boolean=False
-		For x=0 To ventilatori.Size-1
-			Dim s As String=ventilatori.Get(x)
-			If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then
-				b=True
-				Exit
-			End If
-		Next
-		If b=False Then
-			kvs.Put("ventilatore" & x , EditText1.Text.Trim)
-			ventilatori.Add(EditText1.Text.Trim)
-			Spinner1.Add(EditText1.Text.Trim)
-			Spinner1.SelectedIndex=x
-		End If
-		kvs.Put("ip_ventilatore"  , EditText1.Text.Trim)
-		
-		
-		EditText1.Visible=False
-		Spinner1.Visible=True
-	Else
+	If Spinner1.Visible=True Then
 		EditText1.Text=Spinner1.SelectedItem
 		EditText1.Visible=True
 		Spinner1.Visible=False
