@@ -539,33 +539,40 @@ End Sub
 
 Sub applica_modifiche(add As Boolean)
 	If add Then
-		attiva_pannello
-		kvs.Put("ip_ventilatore", EditText1.Text.Trim)
-		Dim b As Boolean=False
-		Dim x As Int=0
-		For x=0 To ventilatori.Size-1
-			Dim s As String=ventilatori.Get(x)
-			If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then
-				b=True
-				Exit
-			End If
-		Next
-		If b=False Then
-			kvs.Put("ventilatore" & x, EditText1.Text.Trim)
-			ventilatori.Add(EditText1.Text.Trim)
-			Spinner1.Add(EditText1.Text.Trim)
-			Spinner1.SelectedIndex=x
-		End If
-		EditText1.Visible=False
-		Spinner1.Visible=True
-		Spinner1.SelectedIndex=x
-		kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
+		If IsValidIP(EditText1.text.trim) Then
+			Log("L'indirizzo IP è valido.")
 		
-		ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
-		primavolta=True
-		Panel1.Visible=True
-		polltimer.Enabled=True
-		serveAggiornamento = True
+			attiva_pannello
+			kvs.Put("ip_ventilatore", EditText1.Text.Trim)
+			Dim b As Boolean=False
+			Dim x As Int=0
+			For x=0 To ventilatori.Size-1
+				Dim s As String=ventilatori.Get(x)
+				If s.Trim.ToLowerCase=EditText1.Text.Trim.ToLowerCase Then
+					b=True
+					Exit
+				End If
+			Next
+			If b=False Then
+				kvs.Put("ventilatore" & x, EditText1.Text.Trim)
+				ventilatori.Add(EditText1.Text.Trim)
+				Spinner1.Add(EditText1.Text.Trim)
+				Spinner1.SelectedIndex=x
+			End If
+			EditText1.Visible=False
+			Spinner1.Visible=True
+			Spinner1.SelectedIndex=x
+			kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
+		
+			ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
+			primavolta=True
+			Panel1.Visible=True
+			polltimer.Enabled=True
+			serveAggiornamento = True
+		Else
+			MsgboxAsync("Controllare IP inserito: " & EditText1.Text & " non Valido", "IP NON VALIDO")
+		End If
+		
 	Else
 		kvs.Remove( Spinner1.SelectedItem)
 		ventilatori.RemoveAt(Spinner1.SelectedIndex)
@@ -604,10 +611,15 @@ Private Sub Buttonok_LongClick
 		EditText1.Visible=True
 		Spinner1.Visible=False
 	Else
-		Msgbox2Async("Eliminare l' IP: " & EditText1.Text,"Elimina IP", "SI","NO", "",null, False)
+		Msgbox2Async("Eliminare l' IP: " & EditText1.Text,"Elimina IP", "SI","NO", "",Null, False)
 		Wait For Msgbox_Result (Result As Int)
 		If Result = DialogResponse.POSITIVE Then
   			applica_modifiche(False)
 		End If
 	End If
+End Sub
+
+Sub IsValidIP(IPAddress As String) As Boolean
+	Dim pattern As String = "^(([01]?\d\d?|2[0-4]\d|25[0-5])\.){3}([01]?\d\d?|2[0-4]\d|25[0-5])$"
+	Return Regex.IsMatch(pattern, IPAddress)
 End Sub
