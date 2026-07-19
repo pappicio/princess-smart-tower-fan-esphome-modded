@@ -37,15 +37,15 @@ Sub Process_Globals
 	Private polltimer As Timer 
 	Private timerDebounce As Timer
 	Private kvs As KeyValueStore
-	Private primavolta As Boolean=True
+
 	Private ventilatori As List
 	
 	
 	Private modeStr As String =""
 	Private minutiReali As Int = 0
 	Private opzione As String = ""
-	Dim statoOn As Boolean = False
-	
+	Private statoOn As Boolean = False
+	Private abilita As Boolean=False
 End Sub
 
 Sub Globals
@@ -67,17 +67,16 @@ Sub Globals
 	Private lblTimerValore As Label
 	Private Buttonok As Button
 	Private Spinner1 As Spinner
-	Private Panel1 As Panel
+
+
+	Private Label3 As Label
 End Sub
 
 Sub attiva_pannello
-	Panel1.top=0
-	Panel1.Left=0
-	Panel1.Width=Activity.Width
-	Panel1.Height=Activity.Height
-	Panel1.BringToFront
-	Panel1.Visible=True
-	Sleep(10)
+	Label3.Enabled=True
+	Label3.BringToFront
+	Label3.Visible=True
+	Sleep(0)
 End Sub
 
 
@@ -101,13 +100,14 @@ Sub LeggiStatoIniziale
 
 		currentSpeed = speedLevel
 		swingOn = oscillation
-
+		abilita=True
 		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
 	
 		'AggiornaUISelezione(statoOn)
 	Else
 		Log("Errore lettura stato: " & job.ErrorMessage)
-		resettacolori(False)
+		'''resettacolori(False)
+		abilita=False
 	End If
 	
 	job.Release
@@ -122,75 +122,109 @@ Sub resettacolori (enabled As Boolean)
 	Dim i As Int
 	For i = 0 To Activity.NumberOfViews - 1
 		Dim v As View = Activity.GetView(i)
-			If enabled=False Then
+			If enabled=False And v<>Label3 Then
 				v.Enabled = False
 			Else
 				v.Enabled = True
 			End If
 		
-		If v Is Button Then
-			Dim b As Button = v
-			b.Color = Colors.LightGray   ' colore a tua scelta
-		End If
+	''	'If v Is Button Then
+	''		'Dim b As Button = v
+	''		'b.Color = Colors.LightGray   ' colore a tua scelta
+	''	'End If
 	Next
 	Spinner1.Enabled=True
 	EditText1.Enabled=True
 	Buttonok.Enabled=True
-		Sleep(0)
+	Sleep(0)
 End Sub
 
 
 
-Sub AggiornaUISelezione  
-	If statoOn Then
-		btnOn.Color=Colors.Gray
-		btnOff.Color=Colors.lightGray
+Sub AggiornaUISelezione
+	If abilita=True Then
+		If statoOn Then
+			btnOn.Color=Colors.Gray
+			btnOff.Color=Colors.lightGray
+		Else
+			btnOff.Color=Colors.Gray
+			btnOn.Color=Colors.lightGray
+		End If
+
+		If currentSpeed=1 Then
+			btnSpeed1.Color=Colors.Gray
+			btnSpeed2.Color=Colors.lightGray
+			btnSpeed3.Color=Colors.lightGray
+		else if currentSpeed=2 Then
+			btnSpeed2.Color=Colors.Gray
+			btnSpeed1.Color=Colors.lightGray
+			btnSpeed3.Color=Colors.lightGray
+		Else
+			btnSpeed3.Color=Colors.Gray
+			btnSpeed1.Color=Colors.lightGray
+			btnSpeed2.Color=Colors.lightGray
+		End If
+	
+		If swingOn Then
+			btnSwingOn.color=Colors.Gray
+			btnSwingOff.color=Colors.lightGray
+		Else
+			btnSwingOff.color=Colors.Gray
+			btnSwingOn.color=Colors.lightGray
+		End If
+	
+		If opzione = "Beep Breve" Then
+			btnBeepOn.Color=Colors.Gray
+			btnBeepOff.Color=Colors.lightGray
+		Else
+			btnBeepOff.Color=Colors.Gray
+			btnBeepOn.Color=Colors.lightGray
+		End If
+	
+		If modeStr = "natural" Then
+			modeBits = 8
+			btnNatural.Color=Colors.gray
+			btnNormal.Color=Colors.lightgray
+			btnSleep.Color=Colors.lightgray
+		Else If modeStr = "sleep" Then
+			modeBits = 16
+			btnSleep.Color=Colors.gray
+			btnNormal.Color=Colors.lightgray
+			btnNatural.Color=Colors.lightgray
+		Else
+			modeBits = 0
+			btnNormal.Color=Colors.gray
+			btnNatural.Color=Colors.lightgray
+			btnSleep.Color=Colors.lightgray
+		End If
+		resettacolori(abilita)
+		abilita=False
+	
 	Else
-		btnOff.Color=Colors.Gray
+ 		
 		btnOn.Color=Colors.lightGray
-	End If
+		btnOff.Color=Colors.lightGray
 
-	If currentSpeed=1 Then
-		btnSpeed1.Color=Colors.Gray
-	else if currentSpeed=2 Then
-		btnSpeed2.Color=Colors.Gray
-	Else
-		btnSpeed3.Color=Colors.Gray
-	End If
-	
-	If swingOn Then
-		btnSwingOn.color=Colors.Gray
-	Else
-		btnSwingOff.color=Colors.Gray
-	End If
-	
-	
-	
-	If opzione = "Beep Breve" Then
-		btnBeepOn.Color=Colors.Gray
-			 
-	Else
-		btnBeepOff.Color=Colors.Gray
-			 
-	End If
-	
-	If modeStr = "natural" Then
-		modeBits = 8
-		btnNatural.Color=Colors.gray
+		btnSpeed1.Color=Colors.lightGray
+		btnSpeed2.Color=Colors.lightGray
+		btnSpeed3.Color=Colors.lightGray
 		
-	Else If modeStr = "sleep" Then
-		modeBits = 16
-		btnSleep.Color=Colors.gray
+		btnSwingOn.color=Colors.lightGray
+		btnSwingOff.color=Colors.lightGray
+	
+		btnBeepOn.Color=Colors.lightGray
+		btnBeepOff.Color=Colors.lightGray
 
-	Else
 		modeBits = 0
-		btnNormal.Color=Colors.gray
-
+		btnNormal.Color=Colors.lightGray
+		btnNatural.Color=Colors.lightgray
+		btnSleep.Color=Colors.lightgray
+		resettacolori(False)
+		abilita=False
 	End If
-	
+
+	Label3.Visible=False
 	Sleep(0)
-	
-	
 	
 End Sub
 
@@ -232,7 +266,6 @@ End Sub
  
 
 Sub Activity_Resume
-	primavolta=True
 	attiva_pannello
 	serveAggiornamento = True
 	polltimer.Enabled = False
@@ -295,11 +328,7 @@ Sub pollTimer_Tick
 	 
 	If serveAggiornamento Then
 		serveAggiornamento = False
-		If primavolta Then 
-			primavolta=false
-			resettacolori(True)
-		End If
-		
+	 
 		LeggiStatoIniziale
 		Sleep(100)
 		LeggiBeepMode
@@ -309,11 +338,8 @@ Sub pollTimer_Tick
 		LeggiTimer
 		Sleep(100)
 		AggiornaUISelezione
-		Panel1.Height=0
-		Panel1.Visible=False
 		polltimer.Enabled = False
 		Sleep(10)
-
 		
 	End If
 End Sub
@@ -586,7 +612,7 @@ Sub applica_modifiche(add As Boolean)
 	If add Then
 		If IsValidIP(EditText1.text.trim) Then
 			Log("L'indirizzo IP è valido.")
-		
+			resettacolori(False)
 			attiva_pannello
 			kvs.Put("ip_ventilatore", EditText1.Text.Trim)
 			Dim b As Boolean=False
@@ -610,7 +636,6 @@ Sub applica_modifiche(add As Boolean)
 			kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
 		
 			ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
-			primavolta=True
 			attiva_pannello
 			serveAggiornamento = True
 			polltimer.Enabled=False
