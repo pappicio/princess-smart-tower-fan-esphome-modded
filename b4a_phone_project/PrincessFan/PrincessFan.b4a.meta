@@ -4,6 +4,6 @@ ModuleBreakpoints0=
 ModuleBreakpoints1=
 ModuleClosedNodes0=
 ModuleClosedNodes1=1
-NavigationStack=Main,Process_Globals,24,0,Main,attiva_pannello,49,0,Main,resettacolori,98,0,Main,Buttonok_Click,568,2,Main,Globals,34,0,Main,Buttonok_LongClick,598,6,Main,IsValidIP,600,0,Main,Spinner1_ItemClick,582,1,Main,btnSleep_Click,522,0,Main,applica_modifiche,556,6
+NavigationStack=Main,LeggiModalita,352,0,Main,LeggiBeepMode,330,0,Main,AggiornaUISelezione,128,0,Main,LeggiStatoIniziale,67,2,Main,LeggiTimer,255,0,Main,applica_modifiche,591,0,Main,Process_Globals,23,6,Main,Activity_Resume,218,0,Main,resettacolori,122,1,Main,pollTimer_Tick,282,5
 SelectedBuild=0
 VisibleModules=1

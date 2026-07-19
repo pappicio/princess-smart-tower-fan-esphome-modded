@@ -39,6 +39,13 @@ Sub Process_Globals
 	Private kvs As KeyValueStore
 	Private primavolta As Boolean=True
 	Private ventilatori As List
+	
+	
+	Private modeStr As String =""
+	Private minutiReali As Int = 0
+	Private opzione As String = ""
+	Dim statoOn As Boolean = False
+	
 End Sub
 
 Sub Globals
@@ -68,12 +75,14 @@ Sub attiva_pannello
 	Panel1.Left=0
 	Panel1.Width=Activity.Width
 	Panel1.Height=Activity.Height
+	Panel1.BringToFront
 	Panel1.Visible=True
-	Sleep(0)
+	Sleep(10)
 End Sub
 
 
 Sub LeggiStatoIniziale
+
 	Dim job As HttpJob
 	job.Initialize("stato_iniziale", Me)
 	job.Download("http://" & EditText1.Text.Trim  & "/fan/Ventilatore")
@@ -86,7 +95,7 @@ Sub LeggiStatoIniziale
 		Dim parser As JSONParser
 		parser.Initialize(jsonStr)
 		Dim root As Map = parser.NextObject
-		Dim statoOn As Boolean = root.Get("value")
+		statoOn = root.Get("value")
 		Dim speedLevel As Int = root.Get("speed_level")
 		Dim oscillation As Boolean = root.Get("oscillation")
 
@@ -95,11 +104,7 @@ Sub LeggiStatoIniziale
 
 		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
 	
-		If primavolta Then
-			primavolta=False
-			resettacolori(True)
-		End If
-		AggiornaUISelezione(statoOn)
+		'AggiornaUISelezione(statoOn)
 	Else
 		Log("Errore lettura stato: " & job.ErrorMessage)
 		resettacolori(False)
@@ -113,6 +118,7 @@ End Sub
 
 Sub resettacolori (enabled As Boolean)
 	attiva_pannello
+	Sleep(0)
 	Dim i As Int
 	For i = 0 To Activity.NumberOfViews - 1
 		Dim v As View = Activity.GetView(i)
@@ -130,11 +136,12 @@ Sub resettacolori (enabled As Boolean)
 	Spinner1.Enabled=True
 	EditText1.Enabled=True
 	Buttonok.Enabled=True
+		Sleep(0)
 End Sub
 
 
 
-Sub AggiornaUISelezione(statoOn As Boolean)
+Sub AggiornaUISelezione  
 	If statoOn Then
 		btnOn.Color=Colors.Gray
 		btnOff.Color=Colors.lightGray
@@ -156,7 +163,34 @@ Sub AggiornaUISelezione(statoOn As Boolean)
 	Else
 		btnSwingOff.color=Colors.Gray
 	End If
+	
+	
+	
+	If opzione = "Beep Breve" Then
+		btnBeepOn.Color=Colors.Gray
+			 
+	Else
+		btnBeepOff.Color=Colors.Gray
+			 
+	End If
+	
+	If modeStr = "natural" Then
+		modeBits = 8
+		btnNatural.Color=Colors.gray
+		
+	Else If modeStr = "sleep" Then
+		modeBits = 16
+		btnSleep.Color=Colors.gray
+
+	Else
+		modeBits = 0
+		btnNormal.Color=Colors.gray
+
+	End If
+	
 	Sleep(0)
+	
+	
 	
 End Sub
 
@@ -199,7 +233,7 @@ End Sub
 
 Sub Activity_Resume
 	primavolta=True
-	Panel1.Visible=True
+	attiva_pannello
 	serveAggiornamento = True
 	polltimer.Enabled = False
 	polltimer.Enabled = True
@@ -245,7 +279,7 @@ Sub LeggiTimer
 		Dim parser As JSONParser
 		parser.Initialize(job.GetString)
 		Dim root As Map = parser.NextObject
-		Dim minutiReali As Int = root.Get("value")
+		 minutiReali  = root.Get("value")
 
 		sbTimer.Value = minutiReali / 10
 		sbTimer_ValueChanged(sbTimer.Value, False)
@@ -261,18 +295,26 @@ Sub pollTimer_Tick
 	 
 	If serveAggiornamento Then
 		serveAggiornamento = False
+		If primavolta Then 
+			primavolta=false
+			resettacolori(True)
+		End If
+		
 		LeggiStatoIniziale
-		Sleep(50)
+		Sleep(100)
 		LeggiBeepMode
-		Sleep(50)
+		Sleep(100)
 		LeggiModalita
-		Sleep(50)
+		Sleep(100)
 		LeggiTimer
-		polltimer.Enabled = False
-		Sleep(50)
+		Sleep(100)
+		AggiornaUISelezione
 		Panel1.Height=0
 		Panel1.Visible=False
-		Sleep(0)
+		polltimer.Enabled = False
+		Sleep(10)
+
+		
 	End If
 End Sub
 
@@ -301,9 +343,10 @@ Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
 			msg = msg & " (" & infoExtra & ")"
 		End If
 		ToastMessageShow(msg, False)
-		Panel1.Visible=True
-		polltimer.Enabled=True
+		attiva_pannello
 		serveAggiornamento = True
+		polltimer.Enabled=False
+		polltimer.Enabled=True
 	Else
 		Log("Errore: " & job.ErrorMessage)
 		ToastMessageShow("Errore: " & job.ErrorMessage, True)
@@ -315,6 +358,7 @@ End Sub
 
 
 
+		
 Sub LeggiBeepMode
 	Dim job As HttpJob
 	job.Initialize("stato_beep", Me)
@@ -326,15 +370,16 @@ Sub LeggiBeepMode
 		Dim parser As JSONParser
 		parser.Initialize(job.GetString)
 		Dim root As Map = parser.NextObject
-		Dim opzione As String = root.Get("state")
+		 opzione = root.Get("state")
 
 		If opzione = "Beep Breve" Then
-			btnBeepOn.Color=Colors.Gray
+			'btnBeepOn.Color=Colors.Gray
 			 
 		Else
-			btnBeepOff.Color=Colors.Gray
+			'btnBeepOff.Color=Colors.Gray
 			 
 		End If
+		
 
 		Log("Beep sincronizzato: " & opzione)
 	Else
@@ -354,19 +399,19 @@ Sub LeggiModalita
 		Dim parser As JSONParser
 		parser.Initialize(job.GetString)
 		Dim root As Map = parser.NextObject
-		Dim modeStr As String = root.Get("state")
+		modeStr  = root.Get("state")
 	
 		If modeStr = "natural" Then
 			modeBits = 8
-			btnNatural.Color=Colors.gray
+			'''btnNatural.Color=Colors.gray
 		
 		Else If modeStr = "sleep" Then
 			modeBits = 16
-			btnSleep.Color=Colors.gray
+			'''btnSleep.Color=Colors.gray
 
 		Else
 			modeBits = 0
-			btnNormal.Color=Colors.gray
+			'''btnNormal.Color=Colors.gray
 
 		End If
 
@@ -566,11 +611,13 @@ Sub applica_modifiche(add As Boolean)
 		
 			ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
 			primavolta=True
-			Panel1.Visible=True
-			polltimer.Enabled=True
+			attiva_pannello
 			serveAggiornamento = True
+			polltimer.Enabled=False
+			polltimer.Enabled=True
 		Else
 			MsgboxAsync("Controllare IP inserito: " & EditText1.Text & " non Valido", "IP NON VALIDO")
+			Wait For Msgbox_Result (Result As Int)
 		End If
 		
 	Else
@@ -601,8 +648,10 @@ End If
 End Sub
 
 Private Sub Spinner1_ItemClick (Position As Int, Value As Object)
-	EditText1.Text=Spinner1.SelectedItem
-	applica_modifiche(True)
+	If EditText1.Text.Trim.ToLowerCase<>Spinner1.SelectedItem.Trim.ToLowerCase Then 
+		EditText1.Text=Spinner1.SelectedItem
+		applica_modifiche(True)
+	End If
 End Sub
 
 Private Sub Buttonok_LongClick
