@@ -221,6 +221,7 @@ Sub AggiornaUISelezione
 		btnSleep.Color=Colors.lightgray
 		resettacolori(False)
 		abilita=False
+		ToastMessageShow("Impossibile connettersi con il Ventilatore selezionato!",True)
 	End If
 
 	Label3.Visible=False
@@ -689,6 +690,10 @@ Private Sub Buttonok_LongClick
 		Wait For Msgbox_Result (Result As Int)
 		If Result = DialogResponse.POSITIVE Then
   			applica_modifiche(False)
+		Else
+			EditText1.Text=Spinner1.SelectedItem
+			EditText1.Visible=False
+			Spinner1.Visible=True
 		End If
 	End If
 End Sub

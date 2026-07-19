@@ -1,9 +1,9 @@
 ﻿ModuleBookmarks0=
 ModuleBookmarks1=
-ModuleBreakpoints0=87,94,104,122
+ModuleBreakpoints0=
 ModuleBreakpoints1=
 ModuleClosedNodes0=
 ModuleClosedNodes1=1
-NavigationStack=Main,attiva_pannello,58,4,Main,Process_Globals,23,6,Main,Activity_Resume,251,0,Main,pollTimer_Tick,314,6,Main,Buttonok_Click,652,0,Main,Buttonok_LongClick,674,0,Main,Spinner1_ItemClick,661,0,Main,applica_modifiche,598,2,Main,resettacolori,108,6,Main,LeggiStatoIniziale,99,6
+NavigationStack=Main,Activity_Resume,251,0,Main,pollTimer_Tick,314,6,Main,Buttonok_Click,652,0,Main,applica_modifiche,598,2,Main,resettacolori,108,6,Main,LeggiStatoIniziale,99,6,Main,Globals,36,0,Main,AggiornaUISelezione,204,6,Main,Spinner1_ItemClick,661,0,Main,Buttonok_LongClick,678,3
 SelectedBuild=0
 VisibleModules=1
