@@ -263,7 +263,7 @@ Sub Activity_Create(FirstTime As Boolean)
  
 	timerDebounce.Initialize("timerDebounce", 1000)
 	polltimer.Initialize("pollTimer", 1000)
-	polltimer.Enabled = True
+	'''polltimer.Enabled = True
 	
 End Sub
  
