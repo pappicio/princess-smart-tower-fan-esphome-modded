@@ -263,13 +263,16 @@ Sub Activity_Create(FirstTime As Boolean)
  
 	timerDebounce.Initialize("timerDebounce", 1000)
 	polltimer.Initialize("pollTimer", 1000)
-	'''polltimer.Enabled = True
+	'''''polltimer.Enabled = True
 	
 End Sub
  
 
 Sub Activity_Resume
-	applica_modifiche(True)
+	'''applica_modifiche(True)
+	serveAggiornamento=True
+	polltimer.Enabled = True
+	
 End Sub
 
 Sub sbTimer_ValueChanged (Value As Int, UserChanged As Boolean)
@@ -338,9 +341,11 @@ Sub pollTimer_Tick
 		Sleep(100)
 		LeggiTimer
 		Sleep(100)
-		AggiornaUISelezione
 		polltimer.Enabled = False
-		Sleep(10)
+		Sleep(100)
+		AggiornaUISelezione
+	
+		
 		
 	End If
 End Sub
