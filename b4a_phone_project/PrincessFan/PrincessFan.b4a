@@ -37,7 +37,7 @@ Sub Process_Globals
 	Private polltimer As Timer 
 	Private timerDebounce As Timer
 	Private kvs As KeyValueStore
-
+	
 	Private ventilatori As List
 	
 	
@@ -46,6 +46,8 @@ Sub Process_Globals
 	Private opzione As String = ""
 	Private statoOn As Boolean = False
 	Private abilita As Boolean=False
+	
+
 End Sub
 
 Sub Globals
@@ -79,15 +81,14 @@ Sub attiva_pannello
 	Sleep(0)
 End Sub
 
-
 Sub LeggiStatoIniziale
-
+    
 	Dim job As HttpJob
 	job.Initialize("stato_iniziale", Me)
-	job.Download("http://" & EditText1.Text.Trim  & "/fan/Ventilatore")
-	job.GetRequest.Timeout = 500
+	job.GetRequest.Timeout = 3000   ' <-- PRIMA di Download
+	job.Download("http://" & EditText1.Text.Trim & "/fan/Ventilatore")
+    
 	Wait For (job) JobDone(job As HttpJob)
-
 	If job.Success Then
 		Dim jsonStr As String = job.GetString
 		Log("Stato ricevuto: " & jsonStr)
@@ -97,23 +98,24 @@ Sub LeggiStatoIniziale
 		statoOn = root.Get("value")
 		Dim speedLevel As Int = root.Get("speed_level")
 		Dim oscillation As Boolean = root.Get("oscillation")
-
 		currentSpeed = speedLevel
 		swingOn = oscillation
-		abilita=True
+		abilita = True
 		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
-	
+        
 		'AggiornaUISelezione(statoOn)
 	Else
-		Log("Errore lettura stato: " & job.ErrorMessage)
-		'''resettacolori(False)
-		abilita=False
+		If job.ErrorMessage.ToLowerCase.Contains("timeout") Then
+			Log("Timeout: dispositivo non raggiungibile entro 5s")
+		Else
+			Log("Errore lettura stato: " & job.ErrorMessage)
+		End If
+		abilita = False
 	End If
-	
+    
 	job.Release
-	
 	Sleep(0)
-	
+    
 End Sub
 
 Sub resettacolori (enabled As Boolean)
@@ -223,7 +225,7 @@ Sub AggiornaUISelezione
 		abilita=False
 		ToastMessageShow("Impossibile connettersi con il Ventilatore selezionato!",True)
 	End If
-
+	
 	Label3.Visible=False
 	Sleep(0)
 	
@@ -267,10 +269,7 @@ End Sub
  
 
 Sub Activity_Resume
-	attiva_pannello
-	serveAggiornamento = True
-	polltimer.Enabled = False
-	polltimer.Enabled = True
+	applica_modifiche(True)
 End Sub
 
 Sub sbTimer_ValueChanged (Value As Int, UserChanged As Boolean)
@@ -305,8 +304,9 @@ End Sub
 Sub LeggiTimer
 	Dim job As HttpJob
 	job.Initialize("stato_timer", Me)
+	job.GetRequest.Timeout = 3000
 	job.Download("http://" & EditText1.Text.Trim & "/number/Ventilatore Timer (minuti)")
-	job.GetRequest.Timeout = 500
+
 	Wait For (job) JobDone(job As HttpJob)
 
 	If job.Success Then
@@ -357,9 +357,10 @@ End Sub
 Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
 	Dim job As HttpJob
 	job.Initialize("", Me)
+	job.GetRequest.Timeout = 3000
 	Dim url As String = "http://" & EditText1.Text.Trim & "/text/Ventilatore Comando Raw/set?value=" & comandoHex
 	job.PostString(url, "")
-	job.GetRequest.Timeout = 500
+
 	job.GetRequest.SetHeader("Content-Length", "0")
 
 	Wait For (job) JobDone(job As HttpJob)
@@ -389,8 +390,9 @@ End Sub
 Sub LeggiBeepMode
 	Dim job As HttpJob
 	job.Initialize("stato_beep", Me)
+	job.GetRequest.Timeout = 3000
 	job.Download("http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro")
-	job.GetRequest.Timeout = 500
+	
 	Wait For (job) JobDone(job As HttpJob)
 
 	If job.Success Then
@@ -418,8 +420,9 @@ End Sub
 Sub LeggiModalita
 	Dim job As HttpJob
 	job.Initialize("stato_mode", Me)
+	job.GetRequest.Timeout = 3000
 	job.Download("http://" & EditText1.Text.Trim & "/text_sensor/Fan Mode")
-	job.GetRequest.Timeout = 500
+	
 	Wait For (job) JobDone(job As HttpJob)
 
 	If job.Success Then
@@ -451,9 +454,10 @@ End Sub
 Sub ImpostaBeepMode(modo As String)
 	Dim job As HttpJob
 	job.Initialize("", Me)
+	job.GetRequest.Timeout = 3000
 	Dim url As String = "http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro/set?option=" & modo
 	job.PostString(url, "")
-	job.GetRequest.Timeout = 500
+
 	job.GetRequest.SetHeader("Content-Length", "0")
 
 	Wait For (job) JobDone(job As HttpJob)
@@ -610,6 +614,13 @@ Sub btnSleep_Click
 End Sub
 
 Sub applica_modifiche(add As Boolean)
+	
+	statoOn=False
+	currentSpeed=0
+	swingOn=False
+	opzione=""
+	modeStr=""
+	
 	If add Then
 		If IsValidIP(EditText1.text.trim) Then
 			Log("L'indirizzo IP è valido.")
@@ -630,13 +641,14 @@ Sub applica_modifiche(add As Boolean)
 				ventilatori.Add(EditText1.Text.Trim)
 				Spinner1.Add(EditText1.Text.Trim)
 				Spinner1.SelectedIndex=x
+				ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
 			End If
 			EditText1.Visible=False
 			Spinner1.Visible=True
 			Spinner1.SelectedIndex=x
 			kvs.Put("ip_ventilatore" , EditText1.Text.Trim)
 		
-			ToastMessageShow("IP salvato: " & EditText1.Text.Trim, False)
+		 
 			attiva_pannello
 			serveAggiornamento = True
 			polltimer.Enabled=False
@@ -667,17 +679,17 @@ Sub applica_modifiche(add As Boolean)
 End Sub
 Private Sub Buttonok_Click
 	If EditText1.Visible Then
-	applica_modifiche(True)
-End If
+		applica_modifiche(True)
+	End If
 
 	
 End Sub
 
 Private Sub Spinner1_ItemClick (Position As Int, Value As Object)
-	If EditText1.Text.Trim.ToLowerCase<>Spinner1.SelectedItem.Trim.ToLowerCase Then 
+	'''If EditText1.Text.Trim.ToLowerCase<>Spinner1.SelectedItem.Trim.ToLowerCase Then 
 		EditText1.Text=Spinner1.SelectedItem
 		applica_modifiche(True)
-	End If
+	'''End If
 End Sub
 
 Private Sub Buttonok_LongClick
@@ -689,6 +701,7 @@ Private Sub Buttonok_LongClick
 		Msgbox2Async("Eliminare l' IP: " & EditText1.Text,"Elimina IP", "SI","NO", "",Null, False)
 		Wait For Msgbox_Result (Result As Int)
 		If Result = DialogResponse.POSITIVE Then
+			ToastMessageShow("IP eliminato: " & EditText1.Text.Trim, False)
   			applica_modifiche(False)
 		Else
 			EditText1.Text=Spinner1.SelectedItem
