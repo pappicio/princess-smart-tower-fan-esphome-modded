@@ -70,6 +70,7 @@ esp8266:
   
 logger:
   level: DEBUG
+  baud_rate: 0 # avoid conflict with fan_uart on the same GPIO1/GPIO3 pins
 
 api:
 
@@ -172,6 +173,12 @@ globals:
     initial_value: '0'
     restore_value: true
 
+  - id: last_sent_byte3
+    type: uint8_t
+    initial_value: '0xFF'
+  - id: last_sent_byte4
+    type: uint8_t
+    initial_value: '0xFF'
 
 select:
   - platform: template
@@ -239,6 +246,9 @@ script:
                    id(current_speed), id(user_swing_target), id(current_mode_bits), mode_str.c_str(),
                    id(current_timer_steps), id(current_timer_steps) * 2);
           id(is_command) = true;
+          id(last_sent_byte3) = p[2];
+          id(last_sent_byte4) = p[3];
+          
           id(fan_uart).write_array(p, 4);
           
 
@@ -302,7 +312,8 @@ interval:
 
               
               // LOGICA BEEPER: Se abbiamo ricevuto conferma (AA A0) e un beep è selezionato
-              if (buf[0] == 0xAA && buf[1] == 0xA0 && id(is_command) == true && id(current_beep_mode) > 0) {
+             //////// if (buf[0] == 0xAA && buf[1] == 0xA0 && id(is_command) == true && id(current_beep_mode) > 0) {
+              if (buf[0] == 0xAA && buf[1] == 0xA0 && id(is_command) == true && id(current_beep_mode) > 0 && buf[2] == id(last_sent_byte3) && buf[3] == id(last_sent_byte4)) {
                 uint8_t cmd_beep = 0xA0 + id(current_beep_mode);
                 uint8_t p[4] = {0xAA, cmd_beep, 0x00, 0x00}; // Inviamo un comando neutro
                 id(fan_uart).write_array(p, 4);
@@ -391,6 +402,9 @@ fan:
                 ESP_LOGI("fan_command", "Invio comando: AA A0 00 02 (OFF)");
                 uint8_t p[4] = {0xAA, 0xA0, 0x00, 0x02};
                 id(is_command) = true;
+                
+                id(last_sent_byte3) = p[2];
+                id(last_sent_byte4) = p[3];
                 id(fan_uart).write_array(p, 4);
     on_speed_set:
       - if:
@@ -574,7 +588,7 @@ text_sensor:
  
 
   - platform: uptime_custom
-    name: "Uptime: "
+    name: "Uptime"
     update_interval: 5s
     web_server:
       sorting_weight: 501
@@ -604,4 +618,49 @@ sensor:
       sorting_weight: 601
 #########################################################################
 
+text:
+  - platform: template
+    name: "Ventilatore Comando Raw"
+    id: raw_command_input
+    mode: text
+    optimistic: true
+    set_action:
+      - lambda: |-
+          std::string input = x;
+          uint8_t bytes[4] = {0, 0, 0, 0};
+          int byte_idx = 0;
+          std::string token = "";
 
+          for (auto &c : input) {
+            if (c == ':') c = ' ';
+          }
+          input += ' ';
+
+          for (char c : input) {
+            if (c == ' ') {
+              if (!token.empty() && byte_idx < 4) {
+                bytes[byte_idx] = (uint8_t) strtol(token.c_str(), nullptr, 16);
+                byte_idx++;
+                token = "";
+              }
+            } else {
+              token += c;
+            }
+          }
+
+          if (byte_idx == 4) {
+            ESP_LOGW("raw_test", "Invio comando MANUALE di TEST: %02X %02X %02X %02X",
+                     bytes[0], bytes[1], bytes[2], bytes[3]);
+            id(fan_uart).write_array(bytes, 4);
+
+            // Se è impostata una modalità beep, invia un secondo comando dedicato
+            if (id(current_beep_mode) > 0) {
+              uint8_t beep_header2 = 0xA0 + id(current_beep_mode);  // 0xA1=breve, 0xA2=lungo
+              uint8_t beep_cmd[4] = {0xAA, beep_header2, 0x00, 0x00};
+              ESP_LOGW("raw_test", "Invio comando BEEP: %02X %02X %02X %02X",
+                       beep_cmd[0], beep_cmd[1], beep_cmd[2], beep_cmd[3]);
+              id(fan_uart).write_array(beep_cmd, 4);
+            }
+          } else {
+            ESP_LOGE("raw_test", "Formato non valido, servono esattamente 4 byte hex (es. AA:A0:00:03)");
+          }
