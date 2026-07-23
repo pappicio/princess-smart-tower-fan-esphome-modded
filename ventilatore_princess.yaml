@@ -70,7 +70,8 @@ esp8266:
   
 logger:
   level: DEBUG
-
+  baud_rate: 0 # evita conflitti con fan_uart sui pin GPIO1/GPIO
+  
 api:
 
 ota:
