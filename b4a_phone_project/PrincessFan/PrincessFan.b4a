@@ -7,10 +7,11 @@ Library2=json
 Library3=keyvaluestore2
 Library4=okhttputils2
 Library5=xui
+Library6=network
 ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: https://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="35"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~CreateResourceFromFile(Macro, Themes.LightTheme)~\n~'End of default text.~\n~SetApplicationAttribute(android:usesCleartextTraffic, "true")~\n~~\n~
 Module1=Starter
 NumberOfFiles=1
-NumberOfLibraries=5
+NumberOfLibraries=6
 NumberOfModules=1
 Version=13.5
 @EndOfDesignText@
@@ -80,44 +81,7 @@ Sub attiva_pannello
 	Label3.Visible=True
 	Sleep(0)
 End Sub
-
-Sub LeggiStatoIniziale
-    
-	Dim job As HttpJob
-	job.Initialize("stato_iniziale", Me)
-	job.GetRequest.Timeout = 3000   ' <-- PRIMA di Download
-	job.Download("http://" & EditText1.Text.Trim & "/fan/Ventilatore")
-    
-	Wait For (job) JobDone(job As HttpJob)
-	If job.Success Then
-		Dim jsonStr As String = job.GetString
-		Log("Stato ricevuto: " & jsonStr)
-		Dim parser As JSONParser
-		parser.Initialize(jsonStr)
-		Dim root As Map = parser.NextObject
-		statoOn = root.Get("value")
-		Dim speedLevel As Int = root.Get("speed_level")
-		Dim oscillation As Boolean = root.Get("oscillation")
-		currentSpeed = speedLevel
-		swingOn = oscillation
-		abilita = True
-		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
-        
-		'AggiornaUISelezione(statoOn)
-	Else
-		If job.ErrorMessage.ToLowerCase.Contains("timeout") Then
-			Log("Timeout: dispositivo non raggiungibile entro 5s")
-		Else
-			Log("Errore lettura stato: " & job.ErrorMessage)
-		End If
-		abilita = False
-	End If
-    
-	job.Release
-	Sleep(0)
-    
-End Sub
-
+ 
 Sub resettacolori (enabled As Boolean)
 	attiva_pannello
 	Sleep(0)
@@ -304,49 +268,177 @@ Sub timerDebounce_Tick
 	InviaStatoCorrente
 End Sub
 
-Sub LeggiTimer
+
+
+Sub HttpGetConRetry(jobName As String, url As String) As ResumableSub
+	Dim tentativo As Int = 0
 	Dim job As HttpJob
-	job.Initialize("stato_timer", Me)
-	job.GetRequest.Timeout = 3000
-	job.Download("http://" & EditText1.Text.Trim & "/number/Ventilatore Timer (minuti)")
+	Dim maxtentativi As Int = 1
+	Do While tentativo < maxtentativi
+		tentativo = tentativo + 1
+		job.Initialize(jobName, Me)
+		job.GetRequest.Timeout = 1000
+		job.Download(url)
+		Wait For (job) JobDone(job As HttpJob)
+		If job.Success Then
+			Return job
+		Else
+			Log(jobName & " errore (tentativo " & tentativo & "/" & maxtentativi & "): " & job.ErrorMessage)
+			job.Release
+			If tentativo < maxtentativi Then Sleep(0)
+		End If
+	Loop
+	Return job
+End Sub
 
-	Wait For (job) JobDone(job As HttpJob)
 
+Sub LeggiStatoIniziale As ResumableSub
+	Wait For (HttpGetConRetry("stato_iniziale", "http://" & EditText1.Text.Trim & "/fan/Ventilatore")) Complete (job As HttpJob)
+    
+	If job.Success Then
+		Dim jsonStr As String = job.GetString
+		Log("Stato ricevuto: " & jsonStr)
+        
+		Dim parser As JSONParser
+		parser.Initialize(jsonStr)
+		Dim root As Map = parser.NextObject
+		statoOn = root.Get("value")
+		Dim speedLevel As Int = root.Get("speed_level")
+		Dim oscillation As Boolean = root.Get("oscillation")
+		currentSpeed = speedLevel
+		swingOn = oscillation
+		abilita = True
+		Log("Sincronizzato: on=" & statoOn & " speed=" & currentSpeed & " swing=" & swingOn)
+	Else
+		Log("Stato non sincronizzato: " & job.ErrorMessage)
+		abilita = False
+	End If
+    
+	Dim success As Boolean = job.Success
+	job.Release
+	Return success
+End Sub
+
+
+Sub LeggiTimer As ResumableSub
+	Wait For (HttpGetConRetry("stato_timer", "http://" & EditText1.Text.Trim & "/number/Ventilatore Timer (minuti)")) Complete (job As HttpJob)
+    
 	If job.Success Then
 		Dim parser As JSONParser
 		parser.Initialize(job.GetString)
 		Dim root As Map = parser.NextObject
-		 minutiReali  = root.Get("value")
-
+		minutiReali = root.Get("value")
 		sbTimer.Value = minutiReali / 10
 		sbTimer_ValueChanged(sbTimer.Value, False)
-
 		Log("Timer sincronizzato: " & minutiReali & " min")
 	Else
-		Log("Errore lettura timer: " & job.ErrorMessage)
+		Log("Timer non sincronizzato: " & job.ErrorMessage)
 	End If
+    
+	Dim success As Boolean = job.Success
 	job.Release
+	Return success
+End Sub
+
+
+Sub LeggiBeepMode As ResumableSub
+	Wait For (HttpGetConRetry("stato_beep", "http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro")) Complete (job As HttpJob)
+    
+	If job.Success Then
+		Dim parser As JSONParser
+		parser.Initialize(job.GetString)
+		Dim root As Map = parser.NextObject
+		opzione = root.Get("state")
+        
+		If opzione = "Beep Breve" Then
+			'btnBeepOn.Color=Colors.Gray
+		Else
+			'btnBeepOff.Color=Colors.Gray
+		End If
+        
+		Log("Beep sincronizzato: " & opzione)
+	Else
+		Log("Beep non sincronizzato: " & job.ErrorMessage)
+	End If
+    
+	Dim success As Boolean = job.Success
+	job.Release
+	Return success
+End Sub
+
+
+Sub LeggiModalita As ResumableSub
+	Wait For (HttpGetConRetry("stato_mode", "http://" & EditText1.Text.Trim & "/text_sensor/Fan Mode")) Complete (job As HttpJob)
+    
+	If job.Success Then
+		Dim parser As JSONParser
+		parser.Initialize(job.GetString)
+		Dim root As Map = parser.NextObject
+		modeStr = root.Get("state")
+        
+		If modeStr = "natural" Then
+			modeBits = 8
+			'''btnNatural.Color=Colors.gray
+		Else If modeStr = "sleep" Then
+			modeBits = 16
+			'''btnSleep.Color=Colors.gray
+		Else
+			modeBits = 0
+			'''btnNormal.Color=Colors.gray
+		End If
+        
+		Log("Modalità sincronizzata: " & modeStr)
+	Else
+		Log("Modalità non sincronizzata: " & job.ErrorMessage)
+	End If
+    
+	Dim success As Boolean = job.Success
+	job.Release
+	Return success
+	
+End Sub
+
+
+Sub VerificaRaggiungibilita(host As String, port As Int, timeoutMs As Int) As ResumableSub
+	Dim sock As Socket
+	sock.Initialize("sock")
+	sock.Connect(host, port, timeoutMs)
+	Wait For (sock) sock_Connected (Successful As Boolean)
+    
+	If Successful Then
+		Try
+			sock.Close
+		Catch
+		End Try
+	End If
+    
+	Return Successful
 End Sub
 
 Sub pollTimer_Tick
-	 
+    
 	If serveAggiornamento Then
 		serveAggiornamento = False
-	 
-		LeggiStatoIniziale
-		Sleep(100)
-		LeggiBeepMode
-		Sleep(100)
-		LeggiModalita
-		Sleep(100)
-		LeggiTimer
-		Sleep(100)
-		polltimer.Enabled = False
-		Sleep(100)
-		AggiornaUISelezione
-	
+		Dim ip As String = EditText1.Text.Trim
+        
+		Wait For (VerificaRaggiungibilita(ip, 80, 1000)) Complete (raggiungibile As Boolean)
+        
+		If raggiungibile Then
 		
-		
+			Wait For (LeggiStatoIniziale) Complete (Success1 As Boolean)
+			Wait For (LeggiBeepMode) Complete (Success2 As Boolean)
+			Wait For (LeggiModalita) Complete (Success3 As Boolean)
+			Wait For (LeggiTimer) Complete (Success4 As Boolean)
+        
+			polltimer.Enabled = False
+			AggiornaUISelezione
+		Else
+			Log("Ventilatore non raggiungibile (" & ip & "), salto il polling")
+			abilita = False
+			polltimer.Enabled = False
+			AggiornaUISelezione
+			
+		End If
 	End If
 End Sub
 
@@ -391,71 +483,11 @@ End Sub
 
 
 
-		
-Sub LeggiBeepMode
-	Dim job As HttpJob
-	job.Initialize("stato_beep", Me)
-	job.GetRequest.Timeout = 3000
-	job.Download("http://" & EditText1.Text.Trim & "/select/Modalità Feedback Sonoro")
-	
-	Wait For (job) JobDone(job As HttpJob)
 
-	If job.Success Then
-		Dim parser As JSONParser
-		parser.Initialize(job.GetString)
-		Dim root As Map = parser.NextObject
-		 opzione = root.Get("state")
+ 
 
-		If opzione = "Beep Breve" Then
-			'btnBeepOn.Color=Colors.Gray
-			 
-		Else
-			'btnBeepOff.Color=Colors.Gray
-			 
-		End If
-		
 
-		Log("Beep sincronizzato: " & opzione)
-	Else
-		Log("Errore lettura beep: " & job.ErrorMessage)
-	End If
-	job.Release
-End Sub
 
-Sub LeggiModalita
-	Dim job As HttpJob
-	job.Initialize("stato_mode", Me)
-	job.GetRequest.Timeout = 3000
-	job.Download("http://" & EditText1.Text.Trim & "/text_sensor/Fan Mode")
-	
-	Wait For (job) JobDone(job As HttpJob)
-
-	If job.Success Then
-		Dim parser As JSONParser
-		parser.Initialize(job.GetString)
-		Dim root As Map = parser.NextObject
-		modeStr  = root.Get("state")
-	
-		If modeStr = "natural" Then
-			modeBits = 8
-			'''btnNatural.Color=Colors.gray
-		
-		Else If modeStr = "sleep" Then
-			modeBits = 16
-			'''btnSleep.Color=Colors.gray
-
-		Else
-			modeBits = 0
-			'''btnNormal.Color=Colors.gray
-
-		End If
-
-		Log("Modalità sincronizzata: " & modeStr)
-	Else
-		Log("Errore lettura modalità: " & job.ErrorMessage)
-	End If
-	job.Release
-End Sub
 Sub ImpostaBeepMode(modo As String)
 	Dim job As HttpJob
 	job.Initialize("", Me)
