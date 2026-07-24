@@ -4,6 +4,6 @@ ModuleBreakpoints0=
 ModuleBreakpoints1=
 ModuleClosedNodes0=
 ModuleClosedNodes1=1
-NavigationStack=Main,attiva_pannello,63,0,Main,HexPad2,430,0,Main,AggiornaUISelezione,172,0,Main,pollTimer_Tick,420,0,Main,VerificaRaggiungibilita,381,3,Main,LeggiStatoIniziale,277,6,Main,LeggiTimer,306,0,Main,LeggiBeepMode,327,1,Main,LeggiModalita,353,2,Main,HttpGetConRetry,256,4
+NavigationStack=Main,HttpGetConRetry,256,4,Main,Globals,38,0,Main,Process_Globals,23,0,Main,timerDebounce_Tick,259,0,Main,sbTimer_ValueChanged,256,0,Main,autoRefreshTimer_Tick,261,0,Main,AttendiTurno,477,2,Main,pollTimer_Tick,439,0,Main,InviaComandoRaw,489,0,Main,Activity_Create,217,2
 SelectedBuild=0
 VisibleModules=1

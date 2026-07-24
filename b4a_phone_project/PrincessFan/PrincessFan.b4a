@@ -28,6 +28,9 @@ Version=13.5
 	#FullScreen: False
 	#IncludeTitle: True
 #End Region
+
+
+
 Sub Process_Globals
 	Private xui As XUI
 	Private currentSpeed As Int = 1
@@ -35,8 +38,11 @@ Sub Process_Globals
 	Private modeBits As Int = 0
 	Private timerSteps As Int = 0
 	Private serveAggiornamento  As Boolean=False
-	Private polltimer As Timer 
+	Private polltimer As Timer
 	Private timerDebounce As Timer
+	Private autoRefreshTimer As Timer          ' <-- NUOVO
+	Private refreshInCorso As Boolean = False  ' <-- NUOVO
+	Private comandoInAttesa As Boolean = False ' <-- NUOVO
 	Private kvs As KeyValueStore
 	
 	Private ventilatori As List
@@ -224,9 +230,10 @@ Sub Activity_Create(FirstTime As Boolean)
 			Spinner1.SelectedIndex=x
 		End If
 	Next
- 
 	timerDebounce.Initialize("timerDebounce", 1000)
 	polltimer.Initialize("pollTimer", 1000)
+	autoRefreshTimer.Initialize("autoRefreshTimer", 5000)   ' <-- NUOVO originale 10 secondi 10000
+	autoRefreshTimer.Enabled = True                           ' <-- NUOVO
 	'''''polltimer.Enabled = True
 	
 End Sub
@@ -262,6 +269,14 @@ Sub sbTimer_ValueChanged (Value As Int, UserChanged As Boolean)
 		timerDebounce.Enabled = True   ' riavvia il countdown da zero ad ogni movimento
 	End If
 End Sub
+
+
+Sub autoRefreshTimer_Tick
+	If comandoInAttesa Or refreshInCorso Then Return
+	serveAggiornamento = True
+	polltimer.Enabled = True
+End Sub
+
 
 Sub timerDebounce_Tick
 	timerDebounce.Enabled = False   ' scatta una sola volta
@@ -419,29 +434,66 @@ Sub pollTimer_Tick
     
 	If serveAggiornamento Then
 		serveAggiornamento = False
+		refreshInCorso = True
 		Dim ip As String = EditText1.Text.Trim
         
 		Wait For (VerificaRaggiungibilita(ip, 80, 1000)) Complete (raggiungibile As Boolean)
         
-		If raggiungibile Then
-		
-			Wait For (LeggiStatoIniziale) Complete (Success1 As Boolean)
-			Wait For (LeggiBeepMode) Complete (Success2 As Boolean)
-			Wait For (LeggiModalita) Complete (Success3 As Boolean)
-			Wait For (LeggiTimer) Complete (Success4 As Boolean)
-        
-			polltimer.Enabled = False
-			AggiornaUISelezione
-		Else
-			Log("Ventilatore non raggiungibile (" & ip & "), salto il polling")
-			abilita = False
-			polltimer.Enabled = False
-			AggiornaUISelezione
-			
+		If Not(raggiungibile) Or comandoInAttesa Then
+			If Not(raggiungibile) Then
+				Log("Ventilatore non raggiungibile (" & ip & "), salto il polling")
+				abilita = False
+				polltimer.Enabled = False
+				refreshInCorso = False
+				AggiornaUISelezione
+			Else
+				Log("Refresh saltato: comando prioritario in coda")
+				polltimer.Enabled = False
+				refreshInCorso = False
+			End If
+			Return
 		End If
+        
+		Wait For (LeggiStatoIniziale) Complete (Success1 As Boolean)
+		If comandoInAttesa Then
+			Log("Refresh interrotto dopo StatoIniziale: comando in coda")
+			polltimer.Enabled = False
+			refreshInCorso = False
+			Return
+		End If
+        
+		Wait For (LeggiBeepMode) Complete (Success2 As Boolean)
+		If comandoInAttesa Then
+			Log("Refresh interrotto dopo BeepMode: comando in coda")
+			polltimer.Enabled = False
+			refreshInCorso = False
+			Return
+		End If
+        
+		Wait For (LeggiModalita) Complete (Success3 As Boolean)
+		If comandoInAttesa Then
+			Log("Refresh interrotto dopo Modalita: comando in coda")
+			polltimer.Enabled = False
+			refreshInCorso = False
+			Return
+		End If
+        
+		Wait For (LeggiTimer) Complete (Success4 As Boolean)
+        
+		polltimer.Enabled = False
+		refreshInCorso = False
+		AggiornaUISelezione
+        
 	End If
 End Sub
 
+Sub AttendiTurno As ResumableSub
+	comandoInAttesa = True
+	Do While refreshInCorso
+		Sleep(50)
+	Loop
+	Return comandoInAttesa
+End Sub
 
 Sub HexPad2(valore As Int) As String
 	Dim h As String = Bit.ToHexString(valore)
@@ -452,6 +504,8 @@ Sub HexPad2(valore As Int) As String
 End Sub
 
 Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
+	Wait For (AttendiTurno) Complete  (Success1 As Boolean)
+    
 	Dim job As HttpJob
 	job.Initialize("", Me)
 	job.GetRequest.Timeout = 3000
@@ -469,12 +523,14 @@ Sub InviaComandoRaw(comandoHex As String, infoExtra As String)
 		End If
 		ToastMessageShow(msg, False)
 		attiva_pannello
+		comandoInAttesa = False
 		serveAggiornamento = True
 		polltimer.Enabled=False
 		polltimer.Enabled=True
 	Else
 		Log("Errore: " & job.ErrorMessage)
 		ToastMessageShow("Errore: " & job.ErrorMessage, True)
+		comandoInAttesa = False
 		polltimer.Enabled=False
 		serveAggiornamento = False
 	End If
