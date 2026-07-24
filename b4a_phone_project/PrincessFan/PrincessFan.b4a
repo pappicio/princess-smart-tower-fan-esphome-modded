@@ -271,8 +271,17 @@ Sub sbTimer_ValueChanged (Value As Int, UserChanged As Boolean)
 End Sub
 
 
+
+
 Sub autoRefreshTimer_Tick
+	
 	If comandoInAttesa Or refreshInCorso Then Return
+	Dim ip As String = EditText1.Text.Trim
+        
+	Wait For (VerificaRaggiungibilita(ip, 80, 1000)) Complete (raggiungibile As Boolean)
+        
+	If Not(raggiungibile)  Then Return
+	
 	serveAggiornamento = True
 	polltimer.Enabled = True
 End Sub
